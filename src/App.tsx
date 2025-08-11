@@ -9,6 +9,7 @@ import { toast } from "react-toastify";
 import { mapSupabaseUserToAppUser } from "./utils/userMapper";
 import AppRoutes from "./routes";
 import { Header } from "./components/Header";
+import Footer from "./components/Footer";
 
 export const App = () => {
   const dispatch = useDispatch();
@@ -79,9 +80,12 @@ export const App = () => {
     >
       <Header />
 
-      <main className="p-6">
+      <main className="pt-16 pb-16">
         <AppRoutes />
       </main>
+      <Footer />
     </div>
   );
 };
+
+

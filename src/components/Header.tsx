@@ -19,7 +19,7 @@ export const Header = () => {
 
   return (
     <header
-      className={`p-4 flex justify-between items-center border-b ${
+      className={`fixed top-0 left-0 right-0 p-4 flex justify-between items-center border-b ${
         darkMode
           ? "border-gray-700 bg-gray-900 text-white"
           : "border-gray-300 bg-white text-gray-900"
