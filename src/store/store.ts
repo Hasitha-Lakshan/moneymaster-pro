@@ -1,9 +1,10 @@
 import { configureStore } from "@reduxjs/toolkit";
-import authReducer from "./features/auth/authSlice";
-import themeReducer from "./features/theme/themeSlice";
-import uiReducer from "./features/ui/uiSlice";
-import sourcesReducer from "./features/sources/sourcesSlice";
-import categoriesReducer from "./features/categories/categoriesSlice";
+import authReducer from "./features/authSlice";
+import themeReducer from "./features/themeSlice";
+import uiReducer from "./features/uiSlice";
+import sourcesReducer from "./features/sourcesSlice";
+import categoriesReducer from "./features/categoriesSlice";
+import transactionsReducer from "./features/transactionsSlice";
 
 export const store = configureStore({
   reducer: {
@@ -12,6 +13,7 @@ export const store = configureStore({
     ui: uiReducer,
     sources: sourcesReducer,
     categories: categoriesReducer,
+    transactions: transactionsReducer,
   },
 });
 

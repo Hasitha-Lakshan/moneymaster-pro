@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Plus, Edit2, Trash2 } from "react-feather"; // or your icon library
 import type { RootState } from "../store/store";
 import { useDispatch, useSelector } from "react-redux";
-import { addSource } from "../store/features/sources/sourcesSlice";
+import { addSource } from "../store/features/sourcesSlice";
 
 export const SourcesPage = () => {
   const dispatch = useDispatch();

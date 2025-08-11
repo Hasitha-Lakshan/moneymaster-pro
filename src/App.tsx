@@ -3,7 +3,7 @@ import "./App.css";
 import type { RootState } from "./store/store";
 import { useDispatch, useSelector } from "react-redux";
 import { supabase } from "./lib/supabaseClient";
-import { setUser } from "./store/features/auth/authSlice";
+import { setUser } from "./store/features/authSlice";
 import { Auth } from "./auth/Auth";
 import { toast } from "react-toastify";
 import { mapSupabaseUserToAppUser } from "./utils/userMapper";

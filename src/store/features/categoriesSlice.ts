@@ -1,5 +1,6 @@
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { supabase } from "../../lib/supabaseClient";
 import type { PayloadAction } from "@reduxjs/toolkit";
-import { createSlice } from "@reduxjs/toolkit";
 
 export interface Category {
   id: string;
@@ -16,20 +17,46 @@ export interface SubCategory {
 interface CategoriesState {
   categories: Category[];
   subCategories: SubCategory[];
+  loading: boolean;
+  error?: string | null;
 }
 
 const initialState: CategoriesState = {
-  categories: [
-    { id: "1", name: "Salary", type: "income" },
-    { id: "2", name: "Groceries", type: "expense" },
-    { id: "3", name: "Stocks", type: "investment" },
-  ],
-  subCategories: [
-    { id: "1", category_id: "2", name: "Supermarket" },
-    { id: "2", category_id: "2", name: "Farmers Market" },
-    { id: "3", category_id: "3", name: "Tech Stocks" },
-  ],
+  categories: [],
+  subCategories: [],
+  loading: false,
+  error: null,
 };
+
+// ✅ Async thunk to fetch categories & subcategories from Supabase
+export const fetchCategories = createAsyncThunk<
+  { categories: Category[]; subCategories: SubCategory[] }, // return type
+  void, // argument type
+  { rejectValue: string } // rejection payload type
+>("categories/fetchCategories", async (_, thunkAPI) => {
+  try {
+    const { data: categoriesData, error: categoriesError } = await supabase
+      .from("categories")
+      .select("*");
+
+    if (categoriesError) throw categoriesError;
+
+    const { data: subCategoriesData, error: subCategoriesError } =
+      await supabase.from("sub_categories").select("*");
+
+    if (subCategoriesError) throw subCategoriesError;
+
+    return {
+      categories: (categoriesData ?? []) as Category[],
+      subCategories: (subCategoriesData ?? []) as SubCategory[],
+    };
+  } catch (err) {
+    const error = err as Error;
+    return thunkAPI.rejectWithValue(
+      error.message || "Failed to fetch categories"
+    );
+  }
+});
 
 const categoriesSlice = createSlice({
   name: "categories",
@@ -50,7 +77,6 @@ const categoriesSlice = createSlice({
       state.categories = state.categories.filter(
         (c) => c.id !== action.payload
       );
-      // Also remove subcategories belonging to deleted category
       state.subCategories = state.subCategories.filter(
         (sc) => sc.category_id !== action.payload
       );
@@ -71,6 +97,22 @@ const categoriesSlice = createSlice({
         (sc) => sc.id !== action.payload
       );
     },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchCategories.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchCategories.fulfilled, (state, action) => {
+        state.loading = false;
+        state.categories = action.payload.categories;
+        state.subCategories = action.payload.subCategories;
+      })
+      .addCase(fetchCategories.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Something went wrong";
+      });
   },
 });
 

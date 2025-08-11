@@ -1,5 +1,5 @@
 import { useDispatch, useSelector } from "react-redux";
-import { toggleDarkMode } from "../store/features/theme/themeSlice";
+import { toggleDarkMode } from "../store/features/themeSlice";
 import type { RootState } from "../store/store";
 import { supabase } from "../lib/supabaseClient";
 

@@ -5,7 +5,7 @@ import type { RootState } from "../store/store";
 import type {
   Category,
   SubCategory,
-} from "../store/features/categories/categoriesSlice";
+} from "../store/features/categoriesSlice";
 
 import {
   addCategory,
@@ -14,7 +14,7 @@ import {
   addSubCategory,
   updateSubCategory,
   deleteSubCategory,
-} from "../store/features/categories/categoriesSlice";
+} from "../store/features/categoriesSlice";
 import { supabase } from "../lib/supabaseClient";
 
 export const CategoriesPage = () => {
