@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { Toast } from "../components/shared/Toast";
+import { useEffect } from "react";
 import { LoadingSpinner } from "../components/shared/LoadingSpinner";
 import { fetchTransactions } from "../store/features/transactionsSlice";
 import { fetchCategories } from "../store/features/categoriesSlice";
@@ -13,20 +12,10 @@ export const HomePage = () => {
   const { loading: txnLoading } = useAppSelector((state) => state.transactions);
   const darkMode = useSelector((state: RootState) => state.theme.darkMode);
 
-  const [toastMessage, setToastMessage] = useState<string | null>("Welcome!");
-
   useEffect(() => {
     dispatch(fetchCategories());
     dispatch(fetchTransactions());
   }, [dispatch]);
-
-  // Clear toast after some time or on some event
-  useEffect(() => {
-    if (!toastMessage) return;
-
-    const timer = setTimeout(() => setToastMessage(null), 3000);
-    return () => clearTimeout(timer);
-  }, [toastMessage]);
 
   return (
     <div
@@ -34,13 +23,6 @@ export const HomePage = () => {
         darkMode ? "bg-gray-900 text-white" : "bg-white text-black"
       } min-h-screen p-6`}
     >
-      {toastMessage && (
-        <Toast
-          message={toastMessage}
-          type="success"
-          onClose={() => setToastMessage(null)}
-        />
-      )}
       {/* rest of your HomePage */}
       <h1 className="text-3xl font-bold mb-4">
         Welcome to Your Finance Dashboard
