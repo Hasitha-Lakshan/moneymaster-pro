@@ -1,10 +1,6 @@
 import { supabase } from "../lib/supabaseClient";
 
-interface AuthProps {
-  onLogin?: () => void;
-}
-
-export const Auth = ({ onLogin }: AuthProps) => {
+export const Auth = () => {
   const handleGoogleLogin = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -12,10 +8,9 @@ export const Auth = ({ onLogin }: AuthProps) => {
         redirectTo: window.location.origin,
       },
     });
+
     if (error) {
       alert(error.message);
-    } else if (onLogin) {
-      onLogin();
     }
   };
 

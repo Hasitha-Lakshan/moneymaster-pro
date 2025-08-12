@@ -2,10 +2,7 @@ import { useState } from "react";
 import { Plus, Edit2, Trash2, RefreshCw, X } from "react-feather";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState } from "../store/store";
-import type {
-  Category,
-  SubCategory,
-} from "../store/features/categoriesSlice";
+import type { Category, SubCategory } from "../store/features/categoriesSlice";
 
 import {
   addCategory,
@@ -16,6 +13,7 @@ import {
   deleteSubCategory,
 } from "../store/features/categoriesSlice";
 import { supabase } from "../lib/supabaseClient";
+import { RestoreDefaultsButton } from "../components/RestoreDefaultsButton";
 
 export const CategoriesPage = () => {
   const dispatch = useDispatch();
@@ -237,6 +235,7 @@ export const CategoriesPage = () => {
           <Plus className="h-4 w-4" />
           <span>Add Category</span>
         </button>
+        <RestoreDefaultsButton />
       </div>
 
       <div className="space-y-4">

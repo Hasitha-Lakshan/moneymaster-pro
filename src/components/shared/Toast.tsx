@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-type ToastType = "success" | "error" | "info";
+export type ToastType = "success" | "error" | "info";
 
 interface ToastProps {
   message: string;
@@ -9,12 +9,12 @@ interface ToastProps {
   onClose?: () => void;
 }
 
-export const Toast: React.FC<ToastProps> = ({
+export const Toast = ({
   message,
   type = "info",
   duration = 3000,
   onClose,
-}) => {
+}: ToastProps) => {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {

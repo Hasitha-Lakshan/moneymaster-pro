@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 import type { RootState } from "./store/store";
 import { useDispatch, useSelector } from "react-redux";
@@ -16,24 +16,72 @@ export const App = () => {
   const darkMode = useSelector((state: RootState) => state.theme.darkMode);
   const user = useSelector((state: RootState) => state.auth.user);
 
+  const [loadingSession, setLoadingSession] = useState(true);
+
+  // Check and insert default data once per user session
+  async function checkAndInsertDefaults(userId: string) {
+    try {
+      const { data, error } = await supabase
+        .from("user_profiles")
+        .select("defaults_inserted")
+        .eq("user_id", userId)
+        .single();
+
+      if (error && error.code !== "PGRST116") {
+        console.error("Error fetching user profile:", error);
+        return;
+      }
+
+      if (!data || !data.defaults_inserted) {
+        const { error: insertError } = await supabase.rpc(
+          "insert_default_data",
+          {
+            p_user_id: userId,
+          }
+        );
+
+        if (insertError) {
+          console.error("Error inserting default data:", insertError);
+        } else {
+          console.log("Default data inserted for user:", userId);
+        }
+      } else {
+        console.log("Defaults already inserted for user:", userId);
+      }
+    } catch (err) {
+      console.error("Unexpected error during defaults check:", err);
+    }
+  }
+
   useEffect(() => {
     // Check session on mount
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       const sessionUser = data.session?.user;
       if (sessionUser) {
         try {
           const appUser = mapSupabaseUserToAppUser(sessionUser);
           dispatch(setUser(appUser));
+
+          // Check and insert defaults once per session
+          if (!sessionStorage.getItem("defaultsChecked")) {
+            await checkAndInsertDefaults(appUser.id);
+            sessionStorage.setItem("defaultsChecked", "true");
+          }
+
+          if (!sessionStorage.getItem("toastRedirect")) {
+            toast.info("Redirecting after login...");
+            sessionStorage.setItem("toastRedirect", "true");
+          }
         } catch (error) {
           console.error("User mapping error:", error);
           dispatch(setUser(null));
         }
       }
+      setLoadingSession(false);
     });
 
-    // Subscribe to auth state changes
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         const sessionUser = session?.user;
 
         if (sessionUser) {
@@ -41,7 +89,11 @@ export const App = () => {
             const appUser = mapSupabaseUserToAppUser(sessionUser);
             dispatch(setUser(appUser));
 
-            // Show login toast only once per browser session
+            if (!sessionStorage.getItem("defaultsChecked")) {
+              await checkAndInsertDefaults(appUser.id);
+              sessionStorage.setItem("defaultsChecked", "true");
+            }
+
             if (
               event === "SIGNED_IN" &&
               !sessionStorage.getItem("toastLoggedIn")
@@ -56,9 +108,9 @@ export const App = () => {
         } else {
           // User signed out or session expired
           dispatch(setUser(null));
-          // Clear sessionStorage flags on sign out
           sessionStorage.removeItem("toastLoggedIn");
-          sessionStorage.removeItem("toastWelcomeBack");
+          sessionStorage.removeItem("toastRedirect");
+          sessionStorage.removeItem("defaultsChecked");
         }
       }
     );
@@ -68,8 +120,12 @@ export const App = () => {
     };
   }, [dispatch]);
 
+  if (loadingSession) {
+    return <div>Loading...</div>;
+  }
+
   if (!user) {
-    return <Auth onLogin={() => toast.info("Redirecting after login...")} />;
+    return <Auth />;
   }
 
   return (
@@ -87,5 +143,3 @@ export const App = () => {
     </div>
   );
 };
-
-
