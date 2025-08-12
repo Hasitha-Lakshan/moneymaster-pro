@@ -372,26 +372,26 @@ CREATE TABLE IF NOT EXISTS user_profiles (
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 
 -- Policy to allow users to SELECT their own profile
-CREATE POLICY IF NOT EXISTS "Users can select their own profile"
+CREATE POLICY "Users can select their own profile"
 ON user_profiles
 FOR SELECT
 USING (user_id = auth.uid());
 
 -- Policy to allow users to INSERT their own profile
-CREATE POLICY IF NOT EXISTS "Users can insert their own profile"
+CREATE POLICY "Users can insert their own profile"
 ON user_profiles
 FOR INSERT
 WITH CHECK (user_id = auth.uid());
 
 -- Policy to allow users to UPDATE their own profile
-CREATE POLICY IF NOT EXISTS "Users can update their own profile"
+CREATE POLICY "Users can update their own profile"
 ON user_profiles
 FOR UPDATE
 USING (user_id = auth.uid())
 WITH CHECK (user_id = auth.uid());
 
 -- Optional: deny DELETE (uncomment if you want to prevent deletions)
-CREATE POLICY IF NOT EXISTS "Deny deletes"
+CREATE POLICY "Deny deletes"
 ON user_profiles
 FOR DELETE
 TO public
