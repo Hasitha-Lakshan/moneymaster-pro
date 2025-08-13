@@ -64,14 +64,14 @@ export const useCategories = () => {
   };
 
   // --- Category CRUD ---
-  const handleCategorySubmit = async () => {
+  const handleCategorySubmit = async (e: React.FormEvent) => {
+    e.preventDefault(); // <-- Prevent page reload
     if (!categoryName.trim()) return;
 
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-
       if (!user) {
         toast.error("You must be logged in to perform this action");
         return;
@@ -84,42 +84,44 @@ export const useCategories = () => {
           .update({ name: categoryName.trim() })
           .eq("id", editingCategoryId)
           .eq("created_by", user.id)
-          .select()
-          .single();
+          .select();
 
         if (error) {
           toast.error("Failed to update category: " + error.message);
           return;
         }
 
-        if (data) {
+        if (data && data.length > 0) {
+          const updatedCategory = data[0];
           dispatch(
             updateCategory({
-              id: editingCategoryId,
-              name: categoryName.trim(),
+              id: updatedCategory.id,
+              name: updatedCategory.name,
               type: "general",
             })
           );
           toast.success("Category updated successfully!");
+        } else {
+          toast.error("Category not found or you do not have permission");
         }
       } else {
         // Add category
         const { data, error } = await supabase
           .from("categories")
           .insert([{ name: categoryName.trim(), created_by: user.id }])
-          .select()
-          .single();
+          .select();
 
         if (error) {
           toast.error("Failed to add category: " + error.message);
           return;
         }
 
-        if (data) {
+        if (data && data.length > 0) {
+          const newCategory = data[0];
           dispatch(
             addCategory({
-              id: data.id,
-              name: data.name,
+              id: newCategory.id,
+              name: newCategory.name,
               type: "general",
             })
           );
@@ -127,6 +129,7 @@ export const useCategories = () => {
         }
       }
 
+      // Reset form
       setShowAddCategoryForm(false);
       setCategoryName("");
       setEditingCategoryId(null);
@@ -172,7 +175,8 @@ export const useCategories = () => {
   };
 
   // --- Sub-category CRUD ---
-  const handleSubCategorySubmit = async () => {
+  const handleSubCategorySubmit = async (e: React.FormEvent) => {
+    e.preventDefault(); // <-- Prevent page reload
     if (!subCategoryName.trim() || !selectedCategoryForSub) return;
 
     try {
