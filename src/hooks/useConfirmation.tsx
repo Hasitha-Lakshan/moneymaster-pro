@@ -8,26 +8,32 @@ type ConfirmationOptions = {
 
 export const useConfirmation = () => {
   const [options, setOptions] = useState<ConfirmationOptions | null>(null);
-  const [resolveFn, setResolveFn] = useState<(value: boolean) => void>();
+  const [resolveFn, setResolveFn] = useState<((value: boolean) => void) | null>(
+    null
+  );
 
   const requestConfirmation = (opts: ConfirmationOptions) => {
-    setOptions(opts);
-    return new Promise<boolean>((resolve) => setResolveFn(() => resolve));
+    return new Promise<boolean>((resolve) => {
+      setResolveFn(() => resolve); // store resolver correctly
+      setOptions(opts); // show modal
+    });
   };
 
   const handleConfirm = () => {
     resolveFn?.(true);
+    setResolveFn(null);
     setOptions(null);
   };
 
   const handleCancel = () => {
     resolveFn?.(false);
+    setResolveFn(null);
     setOptions(null);
   };
 
   const ConfirmationModalComponent = options ? (
     <ConfirmationModal
-      visible={!!options}
+      visible={true}
       title={options.title}
       message={options.message}
       onConfirm={handleConfirm}
