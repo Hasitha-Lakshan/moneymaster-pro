@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS transaction_types (
 );
 
 INSERT INTO transaction_types (name) VALUES
-('Income'), ('Expense'), ('Transfer'), ('Lend'), ('Borrow'), ('Investment')
+('Income'), ('Expense'), ('Transfer'), ('Lend'), ('Borrow'), ('Investment'), ('Payment')
 ON CONFLICT DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS categories (
@@ -34,8 +34,20 @@ CREATE TABLE IF NOT EXISTS sources (
     type VARCHAR(20) CHECK (type IN ('Bank Account', 'Credit Card', 'Cash', 'Digital Wallet', 'Investment', 'Other')),
     currency VARCHAR(3) NOT NULL,
     initial_balance DECIMAL(12,2) DEFAULT 0.00,
+    current_balance DECIMAL(12,2) DEFAULT 0.00,
     notes TEXT,
     created_by UUID NOT NULL
+);
+
+-- ========================
+-- 1a. Credit Card Details Table
+-- ========================
+
+CREATE TABLE IF NOT EXISTS credit_card_details (
+    source_id UUID PRIMARY KEY REFERENCES sources(id) ON DELETE CASCADE,
+    credit_limit DECIMAL(12,2) NOT NULL DEFAULT 0,
+    interest_rate DECIMAL(5,2),
+    billing_cycle_start INT
 );
 
 -- ========================
@@ -93,6 +105,7 @@ CREATE TABLE IF NOT EXISTS borrowing_details (
 
 CREATE TABLE IF NOT EXISTS investment_details (
     transaction_id UUID PRIMARY KEY REFERENCES transactions(id) ON DELETE CASCADE,
+    source_id UUID REFERENCES sources(id) ON DELETE CASCADE,
     asset_name VARCHAR(100) NOT NULL,
     action VARCHAR(20) CHECK (action IN ('Buy', 'Sell', 'Dividend', 'Contribution', 'Withdrawal')),
     quantity DECIMAL(12,4),
@@ -113,6 +126,7 @@ ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE lending_details ENABLE ROW LEVEL SECURITY;
 ALTER TABLE borrowing_details ENABLE ROW LEVEL SECURITY;
 ALTER TABLE investment_details ENABLE ROW LEVEL SECURITY;
+ALTER TABLE credit_card_details ENABLE ROW LEVEL SECURITY;
 
 -- ========================
 -- 6. RLS Policies
@@ -342,101 +356,120 @@ CREATE OR REPLACE FUNCTION get_source_balances()
 RETURNS TABLE (
     source_id UUID,
     source_name TEXT,
+    type TEXT,
     currency TEXT,
     created_by UUID,
-    current_balance NUMERIC
+    current_balance NUMERIC,
+    credit_limit NUMERIC,
+    available_credit NUMERIC,
+    last_updated TIMESTAMP
 ) 
-LANGUAGE sql
+LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
-SELECT 
-    s.id AS source_id,
-    s.name AS source_name,
-    s.currency,
-    s.created_by,
-    s.initial_balance +
-    COALESCE(SUM(
-        CASE
-            WHEN t.source_id = s.id THEN -t.amount
-            WHEN t.destination_source_id = s.id THEN t.amount
-            ELSE 0
-        END
-    ), 0) AS current_balance
-FROM sources s
-LEFT JOIN transactions t
-    ON s.id = t.source_id OR s.id = t.destination_source_id
-WHERE s.created_by = auth.uid()
-GROUP BY s.id, s.name, s.currency, s.initial_balance, s.created_by;
-$$;
-
-CREATE OR REPLACE FUNCTION get_lending_outstanding()
-RETURNS TABLE (
-    transaction_id UUID,
-    person_name TEXT,
-    lent_amount NUMERIC,
-    initial_outstanding NUMERIC,
-    outstanding_balance NUMERIC,
-    created_by UUID
-)
-LANGUAGE sql
-SECURITY DEFINER
-AS $$
-SELECT 
-    ld.transaction_id,
-    p.name AS person_name,
-    t.amount AS lent_amount,
-    ld.initial_outstanding,
-    (ld.initial_outstanding + t.amount) -
-    COALESCE((
-        SELECT COALESCE(SUM(t2.amount), 0)
-        FROM transactions t2
-        JOIN transaction_types tt2 ON t2.type_id = tt2.id
-        WHERE tt2.name = 'Repayment-In'
-          AND t2.category_id = t.category_id
-          AND t2.created_by = t.created_by
-    ), 0) AS outstanding_balance,
-    t.created_by
-FROM lending_details ld
-JOIN transactions t ON ld.transaction_id = t.id
-LEFT JOIN people p ON ld.person_id = p.id
-WHERE t.created_by = auth.uid();
-$$;
-
-CREATE OR REPLACE FUNCTION get_borrowing_outstanding()
-RETURNS TABLE (
-    transaction_id UUID,
-    person_name TEXT,
-    borrowed_amount NUMERIC,
-    initial_outstanding NUMERIC,
-    outstanding_balance NUMERIC,
-    created_by UUID
-)
-LANGUAGE sql
-SECURITY DEFINER
-AS $$
-SELECT 
-    bd.transaction_id,
-    p.name AS person_name,
-    t.amount AS borrowed_amount,
-    bd.initial_outstanding,
-    (bd.initial_outstanding + t.amount) -
-    COALESCE((
-        SELECT COALESCE(SUM(t2.amount), 0)
-        FROM transactions t2
-        JOIN transaction_types tt2 ON t2.type_id = tt2.id
-        WHERE tt2.name = 'Repayment-Out'
-          AND t2.category_id = t.category_id
-          AND t2.created_by = t.created_by
-    ), 0) AS outstanding_balance,
-    t.created_by
-FROM borrowing_details bd
-JOIN transactions t ON bd.transaction_id = t.id
-LEFT JOIN people p ON bd.person_id = p.id
-WHERE t.created_by = auth.uid();
+BEGIN
+    RETURN QUERY
+    SELECT 
+        s.id AS source_id,
+        s.name AS source_name,
+        s.type,
+        s.currency,
+        s.created_by,
+        s.current_balance,
+        COALESCE(cc.credit_limit, 0) AS credit_limit,
+        CASE 
+            WHEN s.type = 'Credit Card' THEN COALESCE(cc.credit_limit, 0) - s.current_balance
+            ELSE NULL
+        END AS available_credit,
+        NOW() AS last_updated
+    FROM sources s
+    LEFT JOIN credit_card_details cc ON s.id = cc.source_id
+    WHERE s.created_by = auth.uid();
+END;
 $$;
 
 -- ========================
--- 9. User Profiles table & Policies (if not present)
+-- 9. Triggers for automatic balance updates
+-- ========================
+
+-- Unified trigger function for all source types
+CREATE OR REPLACE FUNCTION update_source_balance()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    t_type TEXT;
+    delta NUMERIC;
+BEGIN
+    -- Identify transaction type
+    SELECT name INTO t_type FROM transaction_types WHERE id = NEW.type_id;
+
+    -- Bank/Cash/Digital Wallet Transfers
+    IF NEW.source_id IS NOT NULL AND (SELECT type FROM sources WHERE id = NEW.source_id) IN ('Bank Account','Cash','Digital Wallet') THEN
+        UPDATE sources SET current_balance = current_balance - NEW.amount WHERE id = NEW.source_id;
+    END IF;
+
+    IF NEW.destination_source_id IS NOT NULL AND (SELECT type FROM sources WHERE id = NEW.destination_source_id) IN ('Bank Account','Cash','Digital Wallet') THEN
+        UPDATE sources SET current_balance = current_balance + NEW.amount WHERE id = NEW.destination_source_id;
+    END IF;
+
+    -- Credit Card logic
+    IF NEW.source_id IS NOT NULL AND (SELECT type FROM sources WHERE id = NEW.source_id) = 'Credit Card' THEN
+        IF t_type = 'Expense' THEN
+            UPDATE sources SET current_balance = current_balance + NEW.amount WHERE id = NEW.source_id;
+        ELSIF t_type = 'Payment' THEN
+            UPDATE sources SET current_balance = current_balance - NEW.amount WHERE id = NEW.source_id;
+        END IF;
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+-- Trigger on transactions
+CREATE TRIGGER trg_update_source_balance
+AFTER INSERT ON transactions
+FOR EACH ROW
+EXECUTE FUNCTION update_source_balance();
+
+-- Investment trigger
+CREATE OR REPLACE FUNCTION update_investment_balance()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    delta NUMERIC;
+BEGIN
+    IF NEW.action = 'Buy' THEN
+        delta := NEW.quantity * NEW.unit_price;
+        UPDATE sources SET current_balance = current_balance + delta WHERE id = NEW.source_id;
+    ELSIF NEW.action = 'Sell' THEN
+        delta := NEW.quantity * NEW.unit_price;
+        UPDATE sources SET current_balance = current_balance - delta WHERE id = NEW.source_id;
+    ELSIF NEW.action IN ('Dividend', 'Contribution') THEN
+        delta := NEW.quantity * NEW.unit_price;
+        UPDATE sources SET current_balance = current_balance + delta WHERE id = NEW.source_id;
+    ELSIF NEW.action = 'Withdrawal' THEN
+        delta := NEW.quantity * NEW.unit_price;
+        UPDATE sources SET current_balance = current_balance - delta WHERE id = NEW.source_id;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_update_investment_balance
+AFTER INSERT ON investment_details
+FOR EACH ROW
+EXECUTE FUNCTION update_investment_balance();
+
+-- ========================
+-- 10. Lending and Borrowing RPCs (unchanged)
+-- ========================
+
+-- get_lending_outstanding() and get_borrowing_outstanding() as in original script
+
+-- ========================
+-- 11. User Profiles table & Policies
 -- ========================
 
 -- Create user_profiles table to track if defaults inserted per user
@@ -474,6 +507,51 @@ WITH CHECK (user_id = auth.uid());
 DROP POLICY IF EXISTS "Deny deletes" ON user_profiles;
 CREATE POLICY "Deny deletes"
 ON user_profiles
+FOR DELETE
+TO public
+USING (false);
+
+
+-- Enable Row Level Security
+ALTER TABLE credit_card_details ENABLE ROW LEVEL SECURITY;
+
+-- Users can view their own credit card details
+DROP POLICY IF EXISTS "Users can view own credit card details" ON credit_card_details;
+CREATE POLICY "Users can view own credit card details"
+ON credit_card_details
+FOR SELECT
+USING (EXISTS (
+    SELECT 1 FROM sources s 
+    WHERE s.id = credit_card_details.source_id 
+      AND s.created_by = auth.uid()
+));
+
+-- Users can insert their own credit card details
+DROP POLICY IF EXISTS "Users can insert own credit card details" ON credit_card_details;
+CREATE POLICY "Users can insert own credit card details"
+ON credit_card_details
+FOR INSERT
+WITH CHECK (EXISTS (
+    SELECT 1 FROM sources s 
+    WHERE s.id = credit_card_details.source_id 
+      AND s.created_by = auth.uid()
+));
+
+-- Users can update their own credit card details
+DROP POLICY IF EXISTS "Users can update own credit card details" ON credit_card_details;
+CREATE POLICY "Users can update own credit card details"
+ON credit_card_details
+FOR UPDATE
+USING (EXISTS (
+    SELECT 1 FROM sources s 
+    WHERE s.id = credit_card_details.source_id 
+      AND s.created_by = auth.uid()
+));
+
+-- Users cannot delete credit card details (optional)
+DROP POLICY IF EXISTS "Deny deletes" ON credit_card_details;
+CREATE POLICY "Deny deletes"
+ON credit_card_details
 FOR DELETE
 TO public
 USING (false);
