@@ -34,6 +34,7 @@ export const CategoriesPage = () => {
     setSubCategoryName,
     handleSubCategorySubmit,
     handleDeleteSubCategory,
+    ConfirmationModalComponent,
   } = useCategories();
 
   const openAddCategoryForm = () => {
@@ -132,6 +133,7 @@ export const CategoriesPage = () => {
         onSubmit={handleSubCategorySubmit}
         editingSubCategoryId={editingSubCategoryId}
       />
+      {ConfirmationModalComponent}
     </div>
   );
 };

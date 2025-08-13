@@ -9,8 +9,11 @@ import {
   updateSubCategory,
   deleteSubCategory,
   fetchCategories,
+  type SubCategory,
 } from "../store/features/categoriesSlice";
 import { supabase } from "../lib/supabaseClient";
+import { toast } from "react-toastify";
+import { useConfirmation } from "./useConfirmation";
 
 export const useCategories = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -20,13 +23,14 @@ export const useCategories = () => {
     new Set()
   );
 
-  // Form state
+  // --- Category Form State ---
   const [showAddCategoryForm, setShowAddCategoryForm] = useState(false);
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(
     null
   );
   const [categoryName, setCategoryName] = useState("");
 
+  // --- Sub-category Form State ---
   const [showAddSubCategoryForm, setShowAddSubCategoryForm] = useState(false);
   const [selectedCategoryForSub, setSelectedCategoryForSub] = useState<
     string | null
@@ -36,28 +40,30 @@ export const useCategories = () => {
   >(null);
   const [subCategoryName, setSubCategoryName] = useState("");
 
+  // --- Confirmation Modal ---
+  const { requestConfirmation, ConfirmationModalComponent } = useConfirmation();
+
+  // --- Fetch categories on mount ---
   useEffect(() => {
     dispatch(fetchCategories());
   }, [dispatch]);
 
+  // --- Expand/collapse categories ---
   const toggleCategory = (categoryId: string) => {
     const newExpanded = new Set(expandedCategories);
-    if (newExpanded.has(categoryId)) {
-      newExpanded.delete(categoryId);
-    } else {
-      newExpanded.add(categoryId);
-    }
+    if (newExpanded.has(categoryId)) newExpanded.delete(categoryId);
+    else newExpanded.add(categoryId);
     setExpandedCategories(newExpanded);
   };
 
-  const getCategorySubCategories = (categoryId: string) => {
+  // --- Filter subcategories by category ---
+  const getCategorySubCategories = (categoryId: string): SubCategory[] => {
     return categoriesSlice.subCategories.filter(
       (sub) => sub.category_id === categoryId
     );
   };
 
-  // Category CRUD
-
+  // --- Category CRUD ---
   const handleCategorySubmit = async () => {
     if (!categoryName.trim()) return;
 
@@ -65,12 +71,14 @@ export const useCategories = () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
+
       if (!user) {
-        alert("You must be logged in to perform this action");
+        toast.error("You must be logged in to perform this action");
         return;
       }
 
       if (editingCategoryId) {
+        // Update category
         const { data, error } = await supabase
           .from("categories")
           .update({ name: categoryName.trim() })
@@ -80,7 +88,7 @@ export const useCategories = () => {
           .single();
 
         if (error) {
-          alert("Failed to update category: " + error.message);
+          toast.error("Failed to update category: " + error.message);
           return;
         }
 
@@ -92,8 +100,10 @@ export const useCategories = () => {
               type: "general",
             })
           );
+          toast.success("Category updated successfully!");
         }
       } else {
+        // Add category
         const { data, error } = await supabase
           .from("categories")
           .insert([{ name: categoryName.trim(), created_by: user.id }])
@@ -101,7 +111,7 @@ export const useCategories = () => {
           .single();
 
         if (error) {
-          alert("Failed to add category: " + error.message);
+          toast.error("Failed to add category: " + error.message);
           return;
         }
 
@@ -113,32 +123,32 @@ export const useCategories = () => {
               type: "general",
             })
           );
+          toast.success("Category added successfully!");
         }
       }
+
       setShowAddCategoryForm(false);
       setCategoryName("");
       setEditingCategoryId(null);
     } catch (error) {
       console.error("Error saving category:", error);
-      alert("An error occurred while saving the category");
+      toast.error("An error occurred while saving the category");
     }
   };
 
   const handleDeleteCategory = async (categoryId: string) => {
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this category? All its sub-categories will be deleted too."
-      )
-    ) {
-      return;
-    }
+    const confirmed = await requestConfirmation({
+      message:
+        "Are you sure you want to delete this category? All its sub-categories will be deleted too.",
+    });
+    if (!confirmed) return;
 
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
-        alert("You must be logged in to perform this action");
+        toast.error("You must be logged in to perform this action");
         return;
       }
 
@@ -149,19 +159,19 @@ export const useCategories = () => {
         .eq("created_by", user.id);
 
       if (error) {
-        alert("Failed to delete category: " + error.message);
+        toast.error("Failed to delete category: " + error.message);
         return;
       }
 
       dispatch(deleteCategory(categoryId));
+      toast.success("Category deleted successfully!");
     } catch (error) {
       console.error("Error deleting category:", error);
-      alert("An error occurred while deleting the category");
+      toast.error("An error occurred while deleting the category");
     }
   };
 
-  // Subcategory CRUD
-
+  // --- Sub-category CRUD ---
   const handleSubCategorySubmit = async () => {
     if (!subCategoryName.trim() || !selectedCategoryForSub) return;
 
@@ -170,11 +180,12 @@ export const useCategories = () => {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
-        alert("You must be logged in to perform this action");
+        toast.error("You must be logged in to perform this action");
         return;
       }
 
       if (editingSubCategoryId) {
+        // Update subcategory
         const { data, error } = await supabase
           .from("subcategories")
           .update({
@@ -187,7 +198,7 @@ export const useCategories = () => {
           .single();
 
         if (error) {
-          alert("Failed to update sub-category: " + error.message);
+          toast.error("Failed to update sub-category: " + error.message);
           return;
         }
 
@@ -199,8 +210,10 @@ export const useCategories = () => {
               category_id: selectedCategoryForSub,
             })
           );
+          toast.success("Sub-category updated successfully!");
         }
       } else {
+        // Add subcategory
         const { data, error } = await supabase
           .from("subcategories")
           .insert([
@@ -214,7 +227,7 @@ export const useCategories = () => {
           .single();
 
         if (error) {
-          alert("Failed to add sub-category: " + error.message);
+          toast.error("Failed to add sub-category: " + error.message);
           return;
         }
 
@@ -226,29 +239,32 @@ export const useCategories = () => {
               category_id: data.category_id,
             })
           );
+          toast.success("Sub-category added successfully!");
         }
       }
+
       setShowAddSubCategoryForm(false);
       setSubCategoryName("");
       setEditingSubCategoryId(null);
       setSelectedCategoryForSub(null);
     } catch (error) {
       console.error("Error saving subcategory:", error);
-      alert("An error occurred while saving the sub-category");
+      toast.error("An error occurred while saving the sub-category");
     }
   };
 
   const handleDeleteSubCategory = async (subCategoryId: string) => {
-    if (!window.confirm("Are you sure you want to delete this sub-category?")) {
-      return;
-    }
+    const confirmed = await requestConfirmation({
+      message: "Are you sure you want to delete this sub-category?",
+    });
+    if (!confirmed) return;
 
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
-        alert("You must be logged in to perform this action");
+        toast.error("You must be logged in to perform this action");
         return;
       }
 
@@ -259,14 +275,15 @@ export const useCategories = () => {
         .eq("created_by", user.id);
 
       if (error) {
-        alert("Failed to delete sub-category: " + error.message);
+        toast.error("Failed to delete sub-category: " + error.message);
         return;
       }
 
       dispatch(deleteSubCategory(subCategoryId));
+      toast.success("Sub-category deleted successfully!");
     } catch (error) {
       console.error("Error deleting subcategory:", error);
-      alert("An error occurred while deleting the sub-category");
+      toast.error("An error occurred while deleting the sub-category");
     }
   };
 
@@ -294,5 +311,7 @@ export const useCategories = () => {
     setSubCategoryName,
     handleSubCategorySubmit,
     handleDeleteSubCategory,
+
+    ConfirmationModalComponent, // render this in your page
   };
 };
