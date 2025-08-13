@@ -28,7 +28,7 @@ const initialState: CategoriesState = {
   error: null,
 };
 
-// ✅ Async thunk to fetch categories & subcategories from Supabase
+// Async thunk to fetch categories & subcategories from Supabase
 export const fetchCategories = createAsyncThunk<
   { categories: Category[]; subCategories: SubCategory[] }, // return type
   void, // argument type

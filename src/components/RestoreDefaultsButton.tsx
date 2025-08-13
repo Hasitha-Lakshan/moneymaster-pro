@@ -1,20 +1,25 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabaseClient";
-import type { RootState } from "../store/store";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import type { AppDispatch, RootState } from "../store/store";
+import { fetchCategories } from "../store/features/categoriesSlice";
 import { Toast, type ToastType } from "./shared/Toast";
 
 export const RestoreDefaultsButton = () => {
+  const dispatch = useDispatch<AppDispatch>();
   const user = useSelector((state: RootState) => state.auth.user);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: "", type: "" });
 
   const handleRestore = async () => {
+    if (!user) return;
+
     setLoading(true);
-    // setMessage("");
+
     const { error } = await supabase.rpc("restore_default_data", {
       p_user_id: user?.id,
     });
+
     setLoading(false);
 
     if (error) {
@@ -24,6 +29,7 @@ export const RestoreDefaultsButton = () => {
       });
     } else {
       setMessage({ text: "Defaults restored successfully!", type: "success" });
+      dispatch(fetchCategories()); // refresh Redux store automatically
     }
   };
 
