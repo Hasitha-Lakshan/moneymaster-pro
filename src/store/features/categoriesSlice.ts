@@ -35,20 +35,47 @@ export const fetchCategories = createAsyncThunk<
   { rejectValue: string } // rejection payload type
 >("categories/fetchCategories", async (_, thunkAPI) => {
   try {
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('No authenticated user found');
+    }
+
+    // Fetch categories for the current user
     const { data: categoriesData, error: categoriesError } = await supabase
       .from("categories")
-      .select("*");
+      .select("*")
+      .eq("created_by", user.id)
+      .order("name");
 
     if (categoriesError) throw categoriesError;
 
+    // Fetch subcategories for the current user
     const { data: subCategoriesData, error: subCategoriesError } =
-      await supabase.from("sub_categories").select("*");
+      await supabase
+        .from("subcategories")
+        .select("*")
+        .eq("created_by", user.id)
+        .order("name");
 
     if (subCategoriesError) throw subCategoriesError;
 
+    // Transform data to match Redux store structure
+    const transformedCategories = (categoriesData ?? []).map(cat => ({
+      id: cat.id,
+      name: cat.name,
+      type: 'general' as const, // Since your DB doesn't have type field
+    }));
+
+    const transformedSubCategories = (subCategoriesData ?? []).map(sub => ({
+      id: sub.id,
+      name: sub.name,
+      category_id: sub.category_id,
+    }));
+
     return {
-      categories: (categoriesData ?? []) as Category[],
-      subCategories: (subCategoriesData ?? []) as SubCategory[],
+      categories: transformedCategories,
+      subCategories: transformedSubCategories,
     };
   } catch (err) {
     const error = err as Error;
