@@ -5,6 +5,7 @@ import { fetchCategories } from "../store/features/categoriesSlice";
 import { fetchTransactions } from "../store/features/transactionsSlice";
 import { LoadingSpinner } from "../components/shared/LoadingSpinner";
 import { Toast } from "../components/shared/Toast";
+import { FinancialOverview } from "../components/FinancialOverview";
 
 export const DashboardPage = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -75,6 +76,8 @@ export const DashboardPage = () => {
         <LoadingSpinner />
       ) : (
         <>
+          <FinancialOverview />
+
           {/* Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">
             {["income", "expense", "investment", "transfer"].map((type) => (

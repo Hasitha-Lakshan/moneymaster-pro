@@ -1,27 +1,32 @@
 import { useState } from "react";
-import { Plus, Edit2, Trash2 } from "react-feather"; // or your icon library
+import { Plus, Edit2, Trash2 } from "react-feather";
 import type { RootState } from "../store/store";
 import { useDispatch, useSelector } from "react-redux";
-import { addSource } from "../store/features/sourcesSlice";
-import { FinancialOverview } from "../components/FinancialOverview";
+import {
+  addSource,
+  updateSource,
+  deleteSource,
+} from "../store/features/sourcesSlice";
+import { ConfirmationModal } from "../components/shared/ConfirmationModal";
 
 export const SourcesPage = () => {
   const dispatch = useDispatch();
   const sources = useSelector((state: RootState) => state.sources.sources);
   const darkMode = useSelector((state: RootState) => state.theme.darkMode);
 
-  // Local state for showing forms & editing
   const [showAddForm, setShowAddForm] = useState(false);
-  const [editingSource, setEditingSource] = useState(null);
+  const [editingSource, setEditingSource] = useState<string | null>(null);
 
-  // Form state
   const [sourceName, setSourceName] = useState("");
   const [sourceType, setSourceType] = useState("");
   const [creditLimit, setCreditLimit] = useState("");
   const [totalOutstanding, setTotalOutstanding] = useState("");
   const [initialBalance, setInitialBalance] = useState("");
 
-  // Reset form fields helper
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [sourceToDelete, setSourceToDelete] = useState<string | null>(null);
+  const [deleteMessage, setDeleteMessage] = useState("");
+
   const resetForm = () => {
     setSourceName("");
     setSourceType("");
@@ -31,19 +36,16 @@ export const SourcesPage = () => {
     setEditingSource(null);
   };
 
-  // Handle form close
   const handleCloseForm = () => {
     resetForm();
     setShowAddForm(false);
   };
 
-  // Calculate available credit helper for display
   const availableCredit =
     creditLimit && totalOutstanding
       ? parseFloat(creditLimit) - parseFloat(totalOutstanding)
       : 0;
 
-  // Icons based on type
   const getSourceIcon = (type: string) => {
     switch (type) {
       case "bank":
@@ -66,18 +68,50 @@ export const SourcesPage = () => {
     return darkMode ? "text-white" : "text-gray-900";
   };
 
-  // Handle submit (mocked here, replace with actual save logic)
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: add actual logic to save or update source
-    alert("Form submitted. Implement your save logic!");
+
+    const newSource = {
+      id: editingSource || crypto.randomUUID(),
+      name: sourceName,
+      type: sourceType,
+      credit_limit:
+        sourceType === "credit_card" ? parseFloat(creditLimit) : undefined,
+      total_outstanding:
+        sourceType === "credit_card" ? parseFloat(totalOutstanding) : undefined,
+      available_credit:
+        sourceType === "credit_card"
+          ? parseFloat(creditLimit) - parseFloat(totalOutstanding)
+          : undefined,
+      balance:
+        sourceType !== "credit_card" ? parseFloat(initialBalance) : undefined,
+    };
+
+    if (editingSource) {
+      dispatch(updateSource(newSource));
+    } else {
+      dispatch(addSource(newSource));
+    }
+
     handleCloseForm();
+  };
+
+  const handleDeleteClick = (id: string, name: string) => {
+    setSourceToDelete(id);
+    setDeleteMessage(`Delete "${name}"?`);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = () => {
+    if (sourceToDelete) {
+      dispatch(deleteSource(sourceToDelete));
+    }
+    setShowDeleteModal(false);
+    setSourceToDelete(null);
   };
 
   return (
     <>
-      <FinancialOverview />
-
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <h2
@@ -89,11 +123,7 @@ export const SourcesPage = () => {
           </h2>
           <button
             onClick={() => setShowAddForm(true)}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${
-              darkMode
-                ? "bg-blue-600 hover:bg-blue-700 text-white"
-                : "bg-blue-600 hover:bg-blue-700 text-white"
-            }`}
+            className="flex items-center space-x-2 px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white"
           >
             <Plus className="h-4 w-4" />
             <span>Add Source</span>
@@ -133,24 +163,31 @@ export const SourcesPage = () => {
                 <div className="flex space-x-2">
                   <button
                     onClick={() => {
-                      dispatch(addSource(source));
+                      setSourceName(source.name);
+                      setSourceType(source.type);
+                      setCreditLimit(source.credit_limit?.toString() || "");
+                      setTotalOutstanding(
+                        source.total_outstanding?.toString() || ""
+                      );
+                      setInitialBalance(source.balance?.toString() || "");
+                      setEditingSource(source.id);
                       setShowAddForm(true);
                     }}
-                    className={`p-1 rounded ${
+                    className={`${
                       darkMode
                         ? "text-blue-400 hover:bg-gray-700"
                         : "text-blue-600 hover:bg-gray-100"
-                    }`}
+                    } p-1 rounded`}
                   >
                     <Edit2 className="h-4 w-4" />
                   </button>
                   <button
-                    onClick={() => alert("Delete logic here")}
-                    className={`p-1 rounded ${
+                    onClick={() => handleDeleteClick(source.id, source.name)}
+                    className={`${
                       darkMode
                         ? "text-red-400 hover:bg-gray-700"
                         : "text-red-600 hover:bg-gray-100"
-                    }`}
+                    } p-1 rounded`}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -242,6 +279,7 @@ export const SourcesPage = () => {
           ))}
         </div>
 
+        {/* Add/Edit Form */}
         {showAddForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div
@@ -257,6 +295,7 @@ export const SourcesPage = () => {
                 {editingSource ? "Edit Source" : "Add Source"}
               </h3>
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Source Name */}
                 <div>
                   <label
                     className={`block text-sm font-medium mb-1 ${
@@ -279,6 +318,7 @@ export const SourcesPage = () => {
                   />
                 </div>
 
+                {/* Source Type */}
                 <div>
                   <label
                     className={`block text-sm font-medium mb-1 ${
@@ -291,7 +331,6 @@ export const SourcesPage = () => {
                     value={sourceType}
                     onChange={(e) => {
                       setSourceType(e.target.value);
-                      // Reset credit card fields if type changes
                       if (e.target.value !== "credit_card") {
                         setCreditLimit("");
                         setTotalOutstanding("");
@@ -314,6 +353,7 @@ export const SourcesPage = () => {
                   </select>
                 </div>
 
+                {/* Conditional Fields */}
                 {sourceType === "credit_card" ? (
                   <>
                     <div>
@@ -430,6 +470,7 @@ export const SourcesPage = () => {
                   )
                 )}
 
+                {/* Form Actions */}
                 <div className="flex space-x-3 pt-4">
                   <button
                     type="button"
@@ -453,6 +494,15 @@ export const SourcesPage = () => {
             </div>
           </div>
         )}
+
+        {/* Delete Confirmation Modal */}
+        <ConfirmationModal
+          visible={showDeleteModal}
+          title="Confirm Delete"
+          message={deleteMessage}
+          onConfirm={confirmDelete}
+          onCancel={() => setShowDeleteModal(false)}
+        />
       </div>
     </>
   );
