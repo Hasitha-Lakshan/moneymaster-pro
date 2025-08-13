@@ -4,7 +4,7 @@ import type { RootState } from "./store/store";
 import { useDispatch, useSelector } from "react-redux";
 import { supabase } from "./lib/supabaseClient";
 import { setUser } from "./store/features/authSlice";
-import { Auth } from "./auth/Auth";
+import { LoginPage } from "./pages/LoginPage";
 import { toast } from "react-toastify";
 import { mapSupabaseUserToAppUser } from "./utils/userMapper";
 import AppRoutes from "./routes";
@@ -140,8 +140,6 @@ export const App = () => {
     // Listen for changes with better error handling
     const { data: listener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log("Auth state changed:", event);
-
         if (event === "TOKEN_REFRESHED") {
           console.log("Token refreshed successfully");
         }
@@ -212,7 +210,7 @@ export const App = () => {
   }
 
   if (!user) {
-    return <Auth />;
+    return <LoginPage />;
   }
 
   return (

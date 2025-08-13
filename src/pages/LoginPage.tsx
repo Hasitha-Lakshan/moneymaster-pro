@@ -1,6 +1,6 @@
 import { supabase } from "../lib/supabaseClient";
 
-export const Auth = () => {
+export const LoginPage = () => {
   const handleGoogleLogin = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
