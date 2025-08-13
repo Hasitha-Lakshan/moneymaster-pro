@@ -1,9 +1,10 @@
 export const getSourceIcon = (type: string) => {
   const icons: Record<string, string> = {
-    bank: "🏦",
-    credit_card: "💳",
-    cash: "💵",
-    investment: "📈",
+    "Bank Account": "🏦",
+    "Credit Card": "💳",
+    Cash: "💵",
+    Investment: "📈",
+    "Digital Wallet": "📱",
   };
   return icons[type] || "💰";
 };

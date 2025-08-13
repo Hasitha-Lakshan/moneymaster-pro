@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS subcategories (
 CREATE TABLE IF NOT EXISTS sources (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(100) NOT NULL,
-    type VARCHAR(20) CHECK (type IN ('Bank Account', 'Credit Card', 'Cash', 'Digital Wallet', 'Other')),
+    type VARCHAR(20) CHECK (type IN ('Bank Account', 'Credit Card', 'Cash', 'Digital Wallet', 'Investment', 'Other')),
     currency VARCHAR(3) NOT NULL,
     initial_balance DECIMAL(12,2) DEFAULT 0.00,
     notes TEXT,

@@ -25,7 +25,7 @@ export const SourceCard: React.FC<SourceCardProps> = ({
   onDelete,
 }) => {
   const balanceColor =
-    source.type === "credit_card"
+    source.type === "Credit Card"
       ? getBalanceColor(source.available_credit || 0, darkMode)
       : getBalanceColor(source.balance || 0, darkMode);
 
@@ -81,7 +81,7 @@ export const SourceCard: React.FC<SourceCardProps> = ({
       </div>
 
       {/* Body: Credit Card vs Other */}
-      {source.type === "credit_card" ? (
+      {source.type === "Credit Card" ? (
         <div className="space-y-2">
           <div className="flex justify-between">
             <span
