@@ -82,7 +82,7 @@ export const useSources = () => {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("User not logged in");
 
-      // Ensure initial_balance is a number and set current_balance for new sources
+            // Ensure initial_balance is a number and set current_balance for new sources
       const safeData = {
         ...data,
         initial_balance: data.initial_balance ?? 0,
@@ -106,6 +106,16 @@ export const useSources = () => {
           .eq("created_by", user.id);
 
         if (error) throw error;
+
+        // If Credit Card, update credit_card_details separately
+        if (safeData.type === "Credit Card") {
+          await supabase.from("credit_card_details").upsert({
+            source_id: editingSourceId,
+            credit_limit: data.credit_limit ?? 0,
+            interest_rate: data.interest_rate ?? 0,
+            billing_cycle_start: data.billing_cycle_start ?? null,
+          });
+        }
 
         // Map to Redux type
         const updatedSource: Source = {
@@ -134,6 +144,24 @@ export const useSources = () => {
         const { data: newSource, error } = await supabase
           .from("sources")
           .insert([{ ...safeData, created_by: user.id }])
+          .select("*")
+          .single();
+
+        if (error || !newSource) throw error;
+
+        // If Credit Card, insert into credit_card_details
+        if (safeData.type === "Credit Card") {
+          await supabase.from("credit_card_details").insert({
+            source_id: newSource.id,
+            credit_limit: data.credit_limit ?? 0,
+            interest_rate: data.interest_rate ?? 0,
+            billing_cycle_start: data.billing_cycle_start ?? null,
+          });
+        }
+
+        // Fetch inserted source with credit card details
+        const { data: fetchedSource, error: fetchError } = await supabase
+          .from("sources")
           .select(
             `
           *,
@@ -144,47 +172,44 @@ export const useSources = () => {
           )
         `
           )
+          .eq("id", newSource.id)
           .single();
 
-        if (error) throw error;
+        if (fetchError || !fetchedSource) throw fetchError;
 
-        const cc = newSource.credit_card_details ?? null;
+        const cc = fetchedSource.credit_card_details ?? null;
 
         const mappedSource: Source = {
-          id: newSource.id,
-          name: newSource.name,
-          type: newSource.type,
-          currency: newSource.currency,
+          id: fetchedSource.id,
+          name: fetchedSource.name,
+          type: fetchedSource.type,
+          currency: fetchedSource.currency,
           balance: Number(
-            newSource.current_balance ?? newSource.initial_balance ?? 0
+            fetchedSource.current_balance ?? fetchedSource.initial_balance ?? 0
           ),
-          initial_balance: Number(newSource.initial_balance ?? 0),
+          initial_balance: Number(fetchedSource.initial_balance ?? 0),
           credit_limit: cc ? Number(cc.credit_limit) : data.credit_limit,
           interest_rate: cc ? Number(cc.interest_rate) : data.interest_rate,
           billing_cycle_start:
             cc?.billing_cycle_start ?? data.billing_cycle_start,
           available_credit:
-            newSource.type === "Credit Card"
+            fetchedSource.type === "Credit Card"
               ? cc
                 ? Number(cc.credit_limit) -
-                  Number(newSource.current_balance ?? 0)
+                  Number(fetchedSource.current_balance ?? 0)
                 : Number(data.credit_limit ?? 0) -
-                  Number(newSource.current_balance ?? 0)
+                  Number(fetchedSource.current_balance ?? 0)
               : undefined,
-          notes: newSource.notes,
+          notes: fetchedSource.notes,
         };
 
         dispatch(addSource(mappedSource));
         toast.success("Source added successfully!");
       }
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        console.error(err);
+      if (err instanceof Error)
         toast.error(err.message || "Failed to save source");
-      } else {
-        console.error(err);
-        toast.error("An unexpected error occurred while saving the source");
-      }
+      else toast.error("An unexpected error occurred while saving the source");
     } finally {
       setShowForm(false);
       setEditingSourceId(null);
@@ -205,6 +230,17 @@ export const useSources = () => {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("User not logged in");
 
+      // Delete credit card details first if needed
+      if (source.type === "Credit Card") {
+        const { error: ccError } = await supabase
+          .from("credit_card_details")
+          .delete()
+          .eq("source_id", source.id);
+
+        if (ccError) throw ccError;
+      }
+
+      // Delete source
       const { error } = await supabase
         .from("sources")
         .delete()
