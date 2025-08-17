@@ -14,21 +14,16 @@ AS $$
 DECLARE
     t_type TEXT;
     src_type TEXT;
-    dst_type TEXT;
-
-    -- signed amount to apply (positive for inflow, negative for outflow)
     signed_amt NUMERIC;
 BEGIN
     -- Determine whether we are reversing (DELETE/UPDATE) or applying (INSERT/UPDATE)
     IF TG_OP = 'DELETE' THEN
         SELECT name INTO t_type FROM transaction_types WHERE id = OLD.type_id;
         src_type := (SELECT type FROM sources WHERE id = OLD.source_id);
-        dst_type := (SELECT type FROM sources WHERE id = OLD.destination_source_id);
 
-        -- reverse transaction effect
         signed_amt := OLD.amount;
 
-        -- Handle source
+        -- Handle source only
         IF src_type IS NOT NULL THEN
             UPDATE sources
             SET current_balance = current_balance +
@@ -41,27 +36,19 @@ BEGIN
             WHERE id = OLD.source_id;
         END IF;
 
-        -- Handle destination
-        IF dst_type IS NOT NULL AND dst_type IN ('Bank Account','Cash','Digital Wallet') THEN
-            UPDATE sources SET current_balance = current_balance - signed_amt WHERE id = OLD.destination_source_id;
-        END IF;
-
         RETURN OLD;
     END IF;
 
     -- INSERT or UPDATE: first reverse OLD if UPDATE
     IF TG_OP = 'UPDATE' THEN
-        PERFORM update_source_balance() FROM (SELECT OLD.*) oldrow; -- call same logic
+        PERFORM update_source_balance() FROM (SELECT OLD.*) oldrow;
     END IF;
 
-    -- Now apply NEW
+    -- Apply NEW
     SELECT name INTO t_type FROM transaction_types WHERE id = NEW.type_id;
     src_type := (SELECT type FROM sources WHERE id = NEW.source_id);
-    dst_type := (SELECT type FROM sources WHERE id = NEW.destination_source_id);
-
     signed_amt := NEW.amount;
 
-    -- Source
     IF src_type IS NOT NULL THEN
         UPDATE sources
         SET current_balance = current_balance -
@@ -72,11 +59,6 @@ BEGIN
                 ELSE 0
             END
         WHERE id = NEW.source_id;
-    END IF;
-
-    -- Destination
-    IF dst_type IS NOT NULL AND dst_type IN ('Bank Account','Cash','Digital Wallet') THEN
-        UPDATE sources SET current_balance = current_balance + signed_amt WHERE id = NEW.destination_source_id;
     END IF;
 
     RETURN NEW;

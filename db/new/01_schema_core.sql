@@ -11,7 +11,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- ========================
 
 CREATE TABLE IF NOT EXISTS transaction_types (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(50) UNIQUE NOT NULL
 );
 
@@ -70,16 +70,26 @@ CREATE TABLE IF NOT EXISTS people (
 CREATE TABLE IF NOT EXISTS transactions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     date DATE NOT NULL,
-    type_id INT NOT NULL REFERENCES transaction_types(id) ON DELETE RESTRICT,
+    type_id UUID NOT NULL REFERENCES transaction_types(id) ON DELETE RESTRICT,
     category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
     subcategory_id UUID REFERENCES subcategories(id) ON DELETE SET NULL,
     source_id UUID REFERENCES sources(id) ON DELETE SET NULL,
-    destination_source_id UUID REFERENCES sources(id) ON DELETE SET NULL,
     amount DECIMAL(12,2) NOT NULL CHECK (amount >= 0),
     notes TEXT,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW(),
     created_by UUID NOT NULL DEFAULT auth.uid()
+);
+
+-- ========================
+-- 3a. Transfers Table (normalized)
+-- ========================
+
+CREATE TABLE IF NOT EXISTS transfers (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    transaction_from UUID NOT NULL REFERENCES transactions(id) ON DELETE CASCADE,
+    transaction_to UUID NOT NULL REFERENCES transactions(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT NOW()
 );
 
 -- ========================
@@ -118,8 +128,7 @@ CREATE TABLE IF NOT EXISTS investment_details (
 -- 5. User Profiles table
 -- ========================
 
--- Create user_profiles table to track if defaults inserted per user
 CREATE TABLE IF NOT EXISTS user_profiles (
-  user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  defaults_inserted boolean NOT NULL DEFAULT false
+    user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    defaults_inserted boolean NOT NULL DEFAULT false
 );
