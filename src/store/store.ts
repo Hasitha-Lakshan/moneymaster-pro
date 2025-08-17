@@ -5,6 +5,7 @@ import uiReducer from "./features/uiSlice";
 import sourcesReducer from "./features/sourcesSlice";
 import categoriesReducer from "./features/categoriesSlice";
 import transactionsReducer from "./features/transactionsSlice";
+import transactionTypesReducer from "./features/transactionTypesSlice";
 
 export const store = configureStore({
   reducer: {
@@ -14,6 +15,7 @@ export const store = configureStore({
     sources: sourcesReducer,
     categories: categoriesReducer,
     transactions: transactionsReducer,
+    transactionTypes: transactionTypesReducer,
   },
 });
 
