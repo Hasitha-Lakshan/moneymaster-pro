@@ -1,12 +1,23 @@
 import { useState, useEffect } from "react";
 
-// Matches SourceFormData from useSources
+// Matches new database schema for `sources`
 export interface SourceFormData {
   name: string;
-  type: "Bank Account" | "Credit Card" | "Cash" | "Digital Wallet" | "Other";
+  type:
+    | "Bank Account"
+    | "Credit Card"
+    | "Cash"
+    | "Digital Wallet"
+    | "Investment"
+    | "Other";
   currency: string;
   initial_balance?: number;
   notes?: string;
+
+  // Extra fields for Credit Card type
+  credit_limit?: number;
+  interest_rate?: number;
+  billing_cycle_start?: number;
 }
 
 interface SourceFormModalProps {
@@ -34,6 +45,17 @@ export const SourceFormModal: React.FC<SourceFormModalProps> = ({
   );
   const [notes, setNotes] = useState(initialData?.notes || "");
 
+  // Credit card-specific fields
+  const [creditLimit, setCreditLimit] = useState(
+    initialData?.credit_limit?.toString() || ""
+  );
+  const [interestRate, setInterestRate] = useState(
+    initialData?.interest_rate?.toString() || ""
+  );
+  const [billingCycleStart, setBillingCycleStart] = useState(
+    initialData?.billing_cycle_start?.toString() || ""
+  );
+
   // Reset form when modal opens/closes
   useEffect(() => {
     setName(initialData?.name || "");
@@ -41,6 +63,9 @@ export const SourceFormModal: React.FC<SourceFormModalProps> = ({
     setCurrency(initialData?.currency || "USD");
     setInitialBalance(initialData?.initial_balance?.toString() || "");
     setNotes(initialData?.notes || "");
+    setCreditLimit(initialData?.credit_limit?.toString() || "");
+    setInterestRate(initialData?.interest_rate?.toString() || "");
+    setBillingCycleStart(initialData?.billing_cycle_start?.toString() || "");
   }, [initialData, visible]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -53,6 +78,12 @@ export const SourceFormModal: React.FC<SourceFormModalProps> = ({
       initial_balance: parseFloat(initialBalance || "0"),
       notes,
     };
+
+    if (type === "Credit Card") {
+      formData.credit_limit = parseFloat(creditLimit || "0");
+      formData.interest_rate = parseFloat(interestRate || "0");
+      formData.billing_cycle_start = parseInt(billingCycleStart || "1", 10);
+    }
 
     onSubmit(formData);
   };
@@ -123,6 +154,7 @@ export const SourceFormModal: React.FC<SourceFormModalProps> = ({
               <option value="Credit Card">Credit Card</option>
               <option value="Cash">Cash</option>
               <option value="Digital Wallet">Digital Wallet</option>
+              <option value="Investment">Investment</option>
               <option value="Other">Other</option>
             </select>
           </div>
@@ -139,9 +171,10 @@ export const SourceFormModal: React.FC<SourceFormModalProps> = ({
             <input
               type="text"
               value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
+              onChange={(e) => setCurrency(e.target.value.toUpperCase())}
               placeholder="e.g., USD, LKR"
-              className={`w-full px-3 py-2 border rounded-md ${
+              maxLength={3}
+              className={`w-full px-3 py-2 border rounded-md uppercase ${
                 darkMode
                   ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
                   : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
@@ -172,6 +205,76 @@ export const SourceFormModal: React.FC<SourceFormModalProps> = ({
               }`}
             />
           </div>
+
+          {/* Credit Card Extra Fields */}
+          {type === "Credit Card" && (
+            <>
+              <div>
+                <label
+                  className={`block text-sm font-medium mb-1 ${
+                    darkMode ? "text-gray-300" : "text-gray-700"
+                  }`}
+                >
+                  Credit Limit
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={creditLimit}
+                  onChange={(e) => setCreditLimit(e.target.value)}
+                  placeholder="5000.00"
+                  className={`w-full px-3 py-2 border rounded-md ${
+                    darkMode
+                      ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                  }`}
+                />
+              </div>
+              <div>
+                <label
+                  className={`block text-sm font-medium mb-1 ${
+                    darkMode ? "text-gray-300" : "text-gray-700"
+                  }`}
+                >
+                  Interest Rate (%)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={interestRate}
+                  onChange={(e) => setInterestRate(e.target.value)}
+                  placeholder="15.5"
+                  className={`w-full px-3 py-2 border rounded-md ${
+                    darkMode
+                      ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                  }`}
+                />
+              </div>
+              <div>
+                <label
+                  className={`block text-sm font-medium mb-1 ${
+                    darkMode ? "text-gray-300" : "text-gray-700"
+                  }`}
+                >
+                  Billing Cycle Start (Day of Month)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="31"
+                  value={billingCycleStart}
+                  onChange={(e) => setBillingCycleStart(e.target.value)}
+                  placeholder="1"
+                  className={`w-full px-3 py-2 border rounded-md ${
+                    darkMode
+                      ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                  }`}
+                />
+              </div>
+            </>
+          )}
 
           {/* Notes */}
           <div>

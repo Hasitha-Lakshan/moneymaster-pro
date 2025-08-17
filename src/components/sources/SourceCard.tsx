@@ -4,11 +4,25 @@ import { getBalanceColor, getSourceIcon } from "../../utils/sourceUtils";
 interface Source {
   id: string;
   name: string;
-  type: string;
+  type:
+    | "Bank Account"
+    | "Credit Card"
+    | "Cash"
+    | "Digital Wallet"
+    | "Investment"
+    | "Other";
+  currency: string;
+  balance?: number;
+
+  // Credit Card fields
   credit_limit?: number;
   total_outstanding?: number;
   available_credit?: number;
-  balance?: number;
+  interest_rate?: number;
+  billing_cycle_start?: number;
+
+  // Common fields
+  notes?: string;
 }
 
 interface SourceCardProps {
@@ -28,6 +42,11 @@ export const SourceCard: React.FC<SourceCardProps> = ({
     source.type === "Credit Card"
       ? getBalanceColor(source.available_credit || 0, darkMode)
       : getBalanceColor(source.balance || 0, darkMode);
+
+  const formatAmount = (amount?: number) =>
+    `${source.currency} ${
+      amount?.toLocaleString("en-US", { minimumFractionDigits: 2 }) || "0.00"
+    }`;
 
   return (
     <div
@@ -52,7 +71,7 @@ export const SourceCard: React.FC<SourceCardProps> = ({
                 darkMode ? "text-gray-400" : "text-gray-600"
               }`}
             >
-              {source.type.replace("_", " ")}
+              {source.type}
             </p>
           </div>
         </div>
@@ -80,7 +99,7 @@ export const SourceCard: React.FC<SourceCardProps> = ({
         </div>
       </div>
 
-      {/* Body: Credit Card vs Other */}
+      {/* Body: Different views by Source type */}
       {source.type === "Credit Card" ? (
         <div className="space-y-2">
           <div className="flex justify-between">
@@ -96,12 +115,10 @@ export const SourceCard: React.FC<SourceCardProps> = ({
                 darkMode ? "text-white" : "text-gray-900"
               }`}
             >
-              $
-              {source.credit_limit?.toLocaleString("en-US", {
-                minimumFractionDigits: 2,
-              }) || "0.00"}
+              {formatAmount(source.credit_limit)}
             </span>
           </div>
+
           <div className="flex justify-between">
             <span
               className={`text-sm ${
@@ -115,12 +132,10 @@ export const SourceCard: React.FC<SourceCardProps> = ({
                 darkMode ? "text-red-400" : "text-red-600"
               }`}
             >
-              $
-              {source.total_outstanding?.toLocaleString("en-US", {
-                minimumFractionDigits: 2,
-              }) || "0.00"}
+              {formatAmount(source.total_outstanding)}
             </span>
           </div>
+
           <div className="flex justify-between border-t pt-2">
             <span
               className={`text-sm font-medium ${
@@ -130,12 +145,44 @@ export const SourceCard: React.FC<SourceCardProps> = ({
               Available Credit
             </span>
             <span className={`text-lg font-bold ${balanceColor}`}>
-              $
-              {source.available_credit?.toLocaleString("en-US", {
-                minimumFractionDigits: 2,
-              }) || "0.00"}
+              {formatAmount(source.available_credit)}
             </span>
           </div>
+
+          {/* Optional Credit Card details */}
+          {source.interest_rate !== undefined && (
+            <p
+              className={`text-xs ${
+                darkMode ? "text-gray-400" : "text-gray-600"
+              }`}
+            >
+              Interest: {source.interest_rate}% | Billing Start:{" "}
+              {source.billing_cycle_start || "-"}
+            </p>
+          )}
+        </div>
+      ) : source.type === "Investment" ? (
+        <div className="text-right">
+          <p
+            className={`text-xs ${
+              darkMode ? "text-gray-400" : "text-gray-600"
+            } mb-1`}
+          >
+            Current Balance
+          </p>
+          <p className={`text-2xl font-bold ${balanceColor}`}>
+            {formatAmount(source.balance)}
+          </p>
+          {/* placeholder for future investment summary */}
+          {source.notes && (
+            <p
+              className={`mt-2 text-xs ${
+                darkMode ? "text-gray-400" : "text-gray-600"
+              }`}
+            >
+              {source.notes}
+            </p>
+          )}
         </div>
       ) : (
         <div className="text-right">
@@ -147,10 +194,7 @@ export const SourceCard: React.FC<SourceCardProps> = ({
             Balance
           </p>
           <p className={`text-2xl font-bold ${balanceColor}`}>
-            $
-            {source.balance?.toLocaleString("en-US", {
-              minimumFractionDigits: 2,
-            }) || "0.00"}
+            {formatAmount(source.balance)}
           </p>
         </div>
       )}
