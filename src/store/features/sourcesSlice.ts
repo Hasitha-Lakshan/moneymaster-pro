@@ -19,7 +19,8 @@ export interface Source {
     | "Investment"
     | "Other";
   currency: string;
-  balance?: number; // for UI display
+  balance?: number;
+  initial_balance?: number;
   credit_limit?: number;
   total_outstanding?: number;
   available_credit?: number;
@@ -41,6 +42,14 @@ const initialState: SourcesState = {
 };
 
 // -------------------------
+// Supabase Response Types
+// -------------------------
+interface SupabaseCreditCard {
+  credit_limit?: string | number;
+  interest_rate?: string | number;
+  billing_cycle_start?: number;
+}
+
 interface SupabaseSource {
   id: string;
   name: string;
@@ -52,15 +61,13 @@ interface SupabaseSource {
     | "Investment"
     | "Other";
   currency: string;
+  initial_balance?: string | number;
   current_balance?: string | number;
   notes?: string;
-  credit_card_details?: {
-    credit_limit?: string | number;
-    interest_rate?: string | number;
-    billing_cycle_start?: number;
-  } | null;
+  credit_card_details?: SupabaseCreditCard | null;
 }
 
+// -------------------------
 // Async Thunk to fetch sources
 // -------------------------
 export const fetchSources = createAsyncThunk<
@@ -101,14 +108,14 @@ export const fetchSources = createAsyncThunk<
           name: s.name,
           type: s.type,
           currency: s.currency,
-          balance: Number(s.current_balance || 0),
+          balance: Number(s.current_balance ?? 0),
           credit_limit: cc ? Number(cc.credit_limit) : undefined,
           interest_rate: cc ? Number(cc.interest_rate) : undefined,
           billing_cycle_start: cc ? cc.billing_cycle_start : undefined,
           available_credit:
             s.type === "Credit Card"
               ? cc
-                ? Number(cc.credit_limit) - Number(s.current_balance || 0)
+                ? Number(cc.credit_limit) - Number(s.current_balance ?? 0)
                 : 0
               : undefined,
           notes: s.notes,

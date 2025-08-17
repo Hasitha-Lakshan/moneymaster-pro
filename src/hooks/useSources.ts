@@ -14,10 +14,19 @@ import {
 
 export interface SourceFormData {
   name: string;
-  type: "Bank Account" | "Credit Card" | "Cash" | "Digital Wallet" | "Other";
+  type:
+    | "Bank Account"
+    | "Credit Card"
+    | "Cash"
+    | "Digital Wallet"
+    | "Other"
+    | "Investment";
   currency: string;
   initial_balance?: number;
   notes?: string;
+  credit_limit?: number;
+  interest_rate?: number;
+  billing_cycle_start?: number;
 }
 
 export const useSources = () => {
@@ -73,32 +82,99 @@ export const useSources = () => {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("User not logged in");
 
+      // Ensure initial_balance is a number and set current_balance for new sources
       const safeData = {
         ...data,
-        initial_balance: data.initial_balance ?? 0, // ensure number
+        initial_balance: data.initial_balance ?? 0,
+        current_balance: data.initial_balance ?? 0,
       };
 
       if (editingSourceId) {
-        // Update existing source
+        // ------------------------
+        // UPDATE EXISTING SOURCE
+        // ------------------------
         const { error } = await supabase
           .from("sources")
-          .update(safeData)
+          .update({
+            name: safeData.name,
+            type: safeData.type,
+            currency: safeData.currency,
+            initial_balance: safeData.initial_balance,
+            notes: safeData.notes,
+          })
           .eq("id", editingSourceId)
           .eq("created_by", user.id);
+
         if (error) throw error;
 
-        dispatch(updateSource({ ...safeData, id: editingSourceId }));
+        // Map to Redux type
+        const updatedSource: Source = {
+          id: editingSourceId,
+          name: safeData.name,
+          type: safeData.type,
+          currency: safeData.currency,
+          balance: safeData.initial_balance, // keep balance as-is, do not overwrite current_balance
+          initial_balance: safeData.initial_balance,
+          notes: safeData.notes,
+          credit_limit: data.credit_limit,
+          interest_rate: data.interest_rate,
+          billing_cycle_start: data.billing_cycle_start,
+          available_credit:
+            data.type === "Credit Card"
+              ? data.credit_limit! - (safeData.initial_balance ?? 0)
+              : undefined,
+        };
+
+        dispatch(updateSource(updatedSource));
         toast.success("Source updated successfully!");
       } else {
-        // Add new source
+        // ------------------------
+        // ADD NEW SOURCE
+        // ------------------------
         const { data: newSource, error } = await supabase
           .from("sources")
           .insert([{ ...safeData, created_by: user.id }])
-          .select()
+          .select(
+            `
+          *,
+          credit_card_details (
+            credit_limit,
+            interest_rate,
+            billing_cycle_start
+          )
+        `
+          )
           .single();
+
         if (error) throw error;
 
-        dispatch(addSource(newSource));
+        const cc = newSource.credit_card_details ?? null;
+
+        const mappedSource: Source = {
+          id: newSource.id,
+          name: newSource.name,
+          type: newSource.type,
+          currency: newSource.currency,
+          balance: Number(
+            newSource.current_balance ?? newSource.initial_balance ?? 0
+          ),
+          initial_balance: Number(newSource.initial_balance ?? 0),
+          credit_limit: cc ? Number(cc.credit_limit) : data.credit_limit,
+          interest_rate: cc ? Number(cc.interest_rate) : data.interest_rate,
+          billing_cycle_start:
+            cc?.billing_cycle_start ?? data.billing_cycle_start,
+          available_credit:
+            newSource.type === "Credit Card"
+              ? cc
+                ? Number(cc.credit_limit) -
+                  Number(newSource.current_balance ?? 0)
+                : Number(data.credit_limit ?? 0) -
+                  Number(newSource.current_balance ?? 0)
+              : undefined,
+          notes: newSource.notes,
+        };
+
+        dispatch(addSource(mappedSource));
         toast.success("Source added successfully!");
       }
     } catch (err: unknown) {
