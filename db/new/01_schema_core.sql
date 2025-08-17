@@ -18,14 +18,14 @@ CREATE TABLE IF NOT EXISTS transaction_types (
 CREATE TABLE IF NOT EXISTS categories (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(50) NOT NULL UNIQUE,
-    created_by UUID NOT NULL
+    created_by UUID NOT NULL DEFAULT auth.uid()
 );
 
 CREATE TABLE IF NOT EXISTS subcategories (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     category_id UUID NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
     name VARCHAR(50) NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID NOT NULL DEFAULT auth.uid(),
     UNIQUE (category_id, name)
 );
 
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS sources (
     initial_balance DECIMAL(12,2) DEFAULT 0.00,
     current_balance DECIMAL(12,2) DEFAULT 0.00,
     notes TEXT,
-    created_by UUID NOT NULL
+    created_by UUID NOT NULL DEFAULT auth.uid()
 );
 
 -- ========================
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS people (
     name VARCHAR(100) NOT NULL,
     contact VARCHAR(50),
     notes TEXT,
-    created_by UUID NOT NULL
+    created_by UUID NOT NULL DEFAULT auth.uid()
 );
 
 -- ========================
@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     notes TEXT,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW(),
-    created_by UUID NOT NULL
+    created_by UUID NOT NULL DEFAULT auth.uid()
 );
 
 -- ========================
@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS lending_details (
     initial_outstanding DECIMAL(12,2) DEFAULT 0.00,
     due_date DATE,
     status VARCHAR(20) CHECK (status IN ('Ongoing', 'Paid', 'Partial Paid')),
-    created_by UUID NOT NULL
+    created_by UUID NOT NULL DEFAULT auth.uid()
 );
 
 CREATE TABLE IF NOT EXISTS borrowing_details (
@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS borrowing_details (
     initial_outstanding DECIMAL(12,2) DEFAULT 0.00,
     due_date DATE,
     status VARCHAR(20) CHECK (status IN ('Ongoing', 'Repaid', 'Partial Repaid')),
-    created_by UUID NOT NULL
+    created_by UUID NOT NULL DEFAULT auth.uid()
 );
 
 CREATE TABLE IF NOT EXISTS investment_details (
@@ -111,7 +111,7 @@ CREATE TABLE IF NOT EXISTS investment_details (
     action VARCHAR(20) CHECK (action IN ('Buy', 'Sell', 'Dividend', 'Contribution', 'Withdrawal')),
     quantity DECIMAL(12,4),
     unit_price DECIMAL(12,2),
-    created_by UUID NOT NULL
+    created_by UUID NOT NULL DEFAULT auth.uid()
 );
 
 -- ========================
