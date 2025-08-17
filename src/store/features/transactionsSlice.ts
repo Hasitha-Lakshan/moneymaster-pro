@@ -1,24 +1,39 @@
-// src/store/features/transactionsSlice.ts
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import {
+  createSlice,
+  createAsyncThunk,
+  type PayloadAction,
+} from "@reduxjs/toolkit";
 import type { RootState } from "../store";
 import { supabase } from "../../lib/supabaseClient";
 
 // -------------------------
-// Transaction Type
+// Transaction Type (Updated to match database response)
 // -------------------------
 export interface Transaction {
   id: string;
-  date: string; // ISO string
-  type_id: number;
-  category_id?: string | null;
-  subcategory_id?: string | null;
-  source_id?: string | null;
-  destination_source_id?: string | null;
+  date: string;
   amount: number;
-  notes?: string | null;
-  created_at?: string;
-  updated_at?: string;
-  created_by?: string;
+  category_id?: string;
+  type_id: string;
+  subcategory_id?: string;
+  source_id?: string;
+  destination_source_id?: string; // frontend reference for transfers
+  notes?: string;
+}
+
+// Database response type for transfers
+interface TransferResponse {
+  transaction_id: string;
+  transaction_date: string;
+  transaction_amount: number;
+  transaction_category_id?: string;
+  transaction_type_id: string;
+  transaction_subcategory_id?: string;
+  transaction_source_id?: string;
+  transaction_notes?: string;
+  transaction_created_at: string;
+  transaction_updated_at: string;
+  transaction_created_by: string;
 }
 
 // -------------------------
@@ -34,6 +49,20 @@ const initialState: TransactionsState = {
   items: [],
   loading: false,
   error: null,
+};
+
+// Helper function to convert database response to frontend format
+const convertTransferResponse = (transferData: TransferResponse[]): Transaction[] => {
+  return transferData.map(item => ({
+    id: item.transaction_id,
+    date: item.transaction_date,
+    amount: item.transaction_amount,
+    category_id: item.transaction_category_id || undefined,
+    type_id: item.transaction_type_id,
+    subcategory_id: item.transaction_subcategory_id || undefined,
+    source_id: item.transaction_source_id || undefined,
+    notes: item.transaction_notes || undefined,
+  }));
 };
 
 // -------------------------
@@ -52,79 +81,64 @@ export const fetchTransactions = createAsyncThunk<
     return data as Transaction[];
   } catch (err: unknown) {
     if (err instanceof Error) return thunkAPI.rejectWithValue(err.message);
-    return thunkAPI.rejectWithValue("Failed to fetch transactions");
+    return thunkAPI.rejectWithValue("An unknown error occurred");
   }
 });
 
-// Create a transaction (supports transfers)
+// Create transaction (regular or transfer)
 export const createTransaction = createAsyncThunk<
   Transaction[],
-  Omit<Transaction, "id" | "created_at" | "updated_at" | "created_by">,
+  Omit<Transaction, "id">,
   { rejectValue: string }
 >("transactions/createTransaction", async (newTxn, thunkAPI) => {
   try {
-    let inserted: Transaction[] = [];
-
+    // ---------------------
+    // Handle Transfer
+    // ---------------------
     if (newTxn.destination_source_id) {
-      // Insert two transactions for transfer: debit + credit
-      const { data, error } = await supabase
-        .from("transactions")
-        .insert([
-          {
-            date: newTxn.date,
-            type_id: newTxn.type_id,
-            category_id: newTxn.category_id ?? null,
-            subcategory_id: newTxn.subcategory_id ?? null,
-            source_id: newTxn.source_id ?? null,
-            destination_source_id: newTxn.destination_source_id,
-            amount: newTxn.amount,
-            notes: newTxn.notes ?? null,
-          },
-          {
-            date: newTxn.date,
-            type_id: newTxn.type_id,
-            category_id: newTxn.category_id ?? null,
-            subcategory_id: newTxn.subcategory_id ?? null,
-            source_id: newTxn.destination_source_id,
-            destination_source_id: newTxn.source_id ?? null,
-            amount: newTxn.amount,
-            notes: newTxn.notes ?? null,
-          },
-        ])
-        .select();
-
+      const { data, error } = await supabase.rpc("create_transfer", {
+        p_source_id: newTxn.source_id,
+        p_destination_id: newTxn.destination_source_id,
+        p_amount: newTxn.amount,
+        p_date: newTxn.date,
+        p_type_id: newTxn.type_id,
+        p_category_id: newTxn.category_id ?? null,
+        p_subcategory_id: newTxn.subcategory_id ?? null,
+        p_notes: newTxn.notes ?? null,
+      });
       if (error) throw error;
-      inserted = data as Transaction[];
-    } else {
-      // Regular single transaction
-      const { data, error } = await supabase
-        .from("transactions")
-        .insert([
-          {
-            date: newTxn.date,
-            type_id: newTxn.type_id,
-            category_id: newTxn.category_id ?? null,
-            subcategory_id: newTxn.subcategory_id ?? null,
-            source_id: newTxn.source_id ?? null,
-            destination_source_id: null,
-            amount: newTxn.amount,
-            notes: newTxn.notes ?? null,
-          },
-        ])
-        .select();
 
-      if (error) throw error;
-      inserted = data as Transaction[];
+      // Convert database response format to frontend format
+      return convertTransferResponse(data as TransferResponse[]);
     }
 
-    return inserted;
+    // ---------------------
+    // Regular transaction
+    // ---------------------
+    const { data, error } = await supabase
+      .from("transactions")
+      .insert([
+        {
+          date: newTxn.date,
+          type_id: newTxn.type_id,
+          category_id: newTxn.category_id,
+          subcategory_id: newTxn.subcategory_id,
+          source_id: newTxn.source_id,
+          amount: newTxn.amount,
+          notes: newTxn.notes,
+        },
+      ])
+      .select();
+    if (error) throw error;
+
+    return data as Transaction[];
   } catch (err: unknown) {
     if (err instanceof Error) return thunkAPI.rejectWithValue(err.message);
     return thunkAPI.rejectWithValue("Failed to create transaction");
   }
 });
 
-// Update a transaction
+// Update transaction
 export const updateTransaction = createAsyncThunk<
   Transaction,
   Transaction,
@@ -136,12 +150,11 @@ export const updateTransaction = createAsyncThunk<
       .update({
         date: txn.date,
         type_id: txn.type_id,
-        category_id: txn.category_id ?? null,
-        subcategory_id: txn.subcategory_id ?? null,
-        source_id: txn.source_id ?? null,
-        destination_source_id: txn.destination_source_id ?? null,
+        category_id: txn.category_id,
+        subcategory_id: txn.subcategory_id,
+        source_id: txn.source_id,
         amount: txn.amount,
-        notes: txn.notes ?? null,
+        notes: txn.notes,
       })
       .eq("id", txn.id)
       .select()
@@ -155,29 +168,17 @@ export const updateTransaction = createAsyncThunk<
   }
 });
 
-// Delete a transaction
-export const removeTransaction = createAsyncThunk<
-  string,
-  string,
-  { rejectValue: string }
->("transactions/removeTransaction", async (id, thunkAPI) => {
-  try {
-    const { error } = await supabase.from("transactions").delete().eq("id", id);
-    if (error) throw error;
-    return id;
-  } catch (err: unknown) {
-    if (err instanceof Error) return thunkAPI.rejectWithValue(err.message);
-    return thunkAPI.rejectWithValue("Failed to delete transaction");
-  }
-});
-
 // -------------------------
 // Slice
 // -------------------------
 export const transactionsSlice = createSlice({
   name: "transactions",
   initialState,
-  reducers: {},
+  reducers: {
+    removeTransaction: (state, action: PayloadAction<string>) => {
+      state.items = state.items.filter((t) => t.id !== action.payload);
+    },
+  },
   extraReducers: (builder) => {
     builder
       // Fetch
@@ -201,6 +202,7 @@ export const transactionsSlice = createSlice({
       })
       .addCase(createTransaction.fulfilled, (state, action) => {
         state.loading = false;
+        // Insert all returned transactions (regular or both sides of a transfer)
         state.items.push(...action.payload);
       })
       .addCase(createTransaction.rejected, (state, action) => {
@@ -221,26 +223,10 @@ export const transactionsSlice = createSlice({
       .addCase(updateTransaction.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload ?? "Failed to update transaction";
-      })
-
-      // Delete
-      .addCase(removeTransaction.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(removeTransaction.fulfilled, (state, action) => {
-        state.loading = false;
-        state.items = state.items.filter((t) => t.id !== action.payload);
-      })
-      .addCase(removeTransaction.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload ?? "Failed to delete transaction";
       });
   },
 });
 
-// -------------------------
-// Exports
-// -------------------------
+export const { removeTransaction } = transactionsSlice.actions;
 export const selectTransactions = (state: RootState) => state.transactions;
 export default transactionsSlice.reducer;

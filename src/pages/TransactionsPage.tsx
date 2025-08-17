@@ -82,7 +82,7 @@ export const TransactionsPage = () => {
 
     const payload: Omit<Transaction, "id"> = {
       date: formData.date,
-      type_id: Number(formData.type_id),
+      type_id: formData.type_id,
       category_id: isTransfer ? undefined : formData.category_id,
       subcategory_id: isTransfer
         ? undefined
@@ -116,12 +116,13 @@ export const TransactionsPage = () => {
 
   const handleEdit = (txn: Transaction) => {
     const txnTypeName =
-      transactionTypes.find((t) => t.id === txn.type_id)?.name.toLowerCase() ||
-      "";
+      transactionTypes
+        .find((t) => t.id.toString() === txn.type_id)
+        ?.name.toLowerCase() || "";
     setEditId(txn.id);
     setFormData({
       date: txn.date,
-      type_id: txn.type_id.toString() || "",
+      type_id: txn.type_id || "",
       category_id: txnTypeName === "transfer" ? "" : txn.category_id || "",
       subcategory_id:
         txnTypeName === "transfer" ? "" : txn.subcategory_id || "",
@@ -348,7 +349,7 @@ export const TransactionsPage = () => {
             <tbody>
               {transactions.map((txn) => {
                 const typeName =
-                  transactionTypes.find((t) => t.id === txn.type_id)
+                  transactionTypes.find((t) => t.id.toString() === txn.type_id)
                     ?.name || "-";
                 const isTxnTransfer = !!txn.destination_source_id;
 
