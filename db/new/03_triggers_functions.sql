@@ -15,16 +15,88 @@ DECLARE
     t_type TEXT;
     src_type TEXT;
     signed_amt NUMERIC;
+
+    old_t_type TEXT;
+    old_src_type TEXT;
+    old_amt NUMERIC;
+
+    new_t_type TEXT;
+    new_src_type TEXT;
+    new_amt NUMERIC;
 BEGIN
-    -- Determine whether we are reversing (DELETE/UPDATE) or applying (INSERT/UPDATE)
+    -- ====================
+    -- INSERT
+    -- ====================
+    IF TG_OP = 'INSERT' THEN
+        IF NEW.source_id IS NOT NULL THEN
+            SELECT name INTO t_type FROM transaction_types WHERE id = NEW.type_id;
+            src_type := (SELECT type FROM sources WHERE id = NEW.source_id);
+            signed_amt := NEW.amount;
+
+            UPDATE sources
+            SET current_balance = current_balance -
+                CASE 
+                    WHEN src_type IN ('Bank Account','Cash','Digital Wallet') THEN signed_amt
+                    WHEN src_type = 'Credit Card' AND t_type = 'Expense' THEN -signed_amt
+                    WHEN src_type = 'Credit Card' AND t_type = 'Payment' THEN signed_amt
+                    ELSE 0
+                END
+            WHERE id = NEW.source_id;
+        END IF;
+
+        RETURN NEW;
+    END IF;
+
+    -- ====================
+    -- UPDATE
+    -- ====================
+    IF TG_OP = 'UPDATE' THEN
+        -- Reverse OLD transaction
+        IF OLD.source_id IS NOT NULL THEN
+            old_t_type := (SELECT name FROM transaction_types WHERE id = OLD.type_id);
+            old_src_type := (SELECT type FROM sources WHERE id = OLD.source_id);
+            old_amt := OLD.amount;
+
+            UPDATE sources
+            SET current_balance = current_balance +
+                CASE
+                    WHEN old_src_type IN ('Bank Account','Cash','Digital Wallet') THEN old_amt
+                    WHEN old_src_type = 'Credit Card' AND old_t_type = 'Expense' THEN -old_amt
+                    WHEN old_src_type = 'Credit Card' AND old_t_type = 'Payment' THEN old_amt
+                    ELSE 0
+                END
+            WHERE id = OLD.source_id;
+        END IF;
+
+        -- Apply NEW transaction
+        IF NEW.source_id IS NOT NULL THEN
+            new_t_type := (SELECT name FROM transaction_types WHERE id = NEW.type_id);
+            new_src_type := (SELECT type FROM sources WHERE id = NEW.source_id);
+            new_amt := NEW.amount;
+
+            UPDATE sources
+            SET current_balance = current_balance -
+                CASE
+                    WHEN new_src_type IN ('Bank Account','Cash','Digital Wallet') THEN new_amt
+                    WHEN new_src_type = 'Credit Card' AND new_t_type = 'Expense' THEN -new_amt
+                    WHEN new_src_type = 'Credit Card' AND new_t_type = 'Payment' THEN new_amt
+                    ELSE 0
+                END
+            WHERE id = NEW.source_id;
+        END IF;
+
+        RETURN NEW;
+    END IF;
+
+    -- ====================
+    -- DELETE
+    -- ====================
     IF TG_OP = 'DELETE' THEN
-        SELECT name INTO t_type FROM transaction_types WHERE id = OLD.type_id;
-        src_type := (SELECT type FROM sources WHERE id = OLD.source_id);
+        IF OLD.source_id IS NOT NULL THEN
+            t_type := (SELECT name FROM transaction_types WHERE id = OLD.type_id);
+            src_type := (SELECT type FROM sources WHERE id = OLD.source_id);
+            signed_amt := OLD.amount;
 
-        signed_amt := OLD.amount;
-
-        -- Handle source only
-        IF src_type IS NOT NULL THEN
             UPDATE sources
             SET current_balance = current_balance +
                 CASE 
@@ -39,31 +111,10 @@ BEGIN
         RETURN OLD;
     END IF;
 
-    -- INSERT or UPDATE: first reverse OLD if UPDATE
-    IF TG_OP = 'UPDATE' THEN
-        PERFORM update_source_balance() FROM (SELECT OLD.*) oldrow;
-    END IF;
-
-    -- Apply NEW
-    SELECT name INTO t_type FROM transaction_types WHERE id = NEW.type_id;
-    src_type := (SELECT type FROM sources WHERE id = NEW.source_id);
-    signed_amt := NEW.amount;
-
-    IF src_type IS NOT NULL THEN
-        UPDATE sources
-        SET current_balance = current_balance -
-            CASE 
-                WHEN src_type IN ('Bank Account','Cash','Digital Wallet') THEN signed_amt
-                WHEN src_type = 'Credit Card' AND t_type = 'Expense' THEN -signed_amt
-                WHEN src_type = 'Credit Card' AND t_type = 'Payment' THEN signed_amt
-                ELSE 0
-            END
-        WHERE id = NEW.source_id;
-    END IF;
-
-    RETURN NEW;
+    RETURN NULL;
 END;
 $$;
+
 
 -- ========================
 -- 2. Investment Balance Update Function
@@ -74,10 +125,10 @@ RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    multiplier NUMERIC := 1;
+    multiplier NUMERIC;
     delta NUMERIC;
 BEGIN
-    -- On DELETE or UPDATE, reverse old record
+    -- DELETE or UPDATE: reverse OLD record
     IF TG_OP = 'DELETE' OR TG_OP = 'UPDATE' THEN
         multiplier := -1;
         delta := OLD.quantity * OLD.unit_price;
@@ -95,7 +146,7 @@ BEGIN
         WHERE id = OLD.source_id;
     END IF;
 
-    -- On INSERT or UPDATE, apply new record
+    -- INSERT or UPDATE: apply NEW record
     IF TG_OP = 'INSERT' OR TG_OP = 'UPDATE' THEN
         multiplier := 1;
         delta := NEW.quantity * NEW.unit_price;
@@ -106,7 +157,7 @@ BEGIN
                 WHEN 'Buy' THEN  delta * multiplier
                 WHEN 'Sell' THEN -delta * multiplier
                 WHEN 'Dividend' THEN  delta * multiplier
-                WHEN 'Contribution' THEN  delta * multiplier
+                WHEN 'Contribution' THEN -delta * multiplier
                 WHEN 'Withdrawal' THEN -delta * multiplier
                 ELSE 0
             END
@@ -132,7 +183,7 @@ AFTER INSERT OR UPDATE OR DELETE ON investment_details
 FOR EACH ROW EXECUTE FUNCTION update_investment_balance();
 
 -- ========================
--- 4. Lending and Borrowing Functions
+-- 4. Lending and Borrowing Functions (with current_outstanding)
 -- ========================
 
 CREATE OR REPLACE FUNCTION get_lending_outstanding()
@@ -153,13 +204,15 @@ BEGIN
         ld.transaction_id,
         p.name,
         ld.initial_outstanding,
-        ld.initial_outstanding, -- TODO: replace with repayment-adjusted balance
+        COALESCE(ld.initial_outstanding - SUM(lr.amount_paid), ld.initial_outstanding) AS current_outstanding,
         ld.due_date,
         ld.status,
         ld.created_by
     FROM lending_details ld
     LEFT JOIN people p ON ld.person_id = p.id
-    WHERE ld.created_by = auth.uid();
+    LEFT JOIN lending_repayments lr ON ld.transaction_id = lr.lending_id
+    WHERE ld.created_by = auth.uid()
+    GROUP BY ld.transaction_id, p.name, ld.initial_outstanding, ld.due_date, ld.status, ld.created_by;
 END;
 $$;
 
@@ -181,12 +234,14 @@ BEGIN
         bd.transaction_id,
         p.name,
         bd.initial_outstanding,
-        bd.initial_outstanding, -- TODO: replace with repayment-adjusted balance
+        COALESCE(bd.initial_outstanding - SUM(br.amount_paid), bd.initial_outstanding) AS current_outstanding,
         bd.due_date,
         bd.status,
         bd.created_by
     FROM borrowing_details bd
     LEFT JOIN people p ON bd.person_id = p.id
-    WHERE bd.created_by = auth.uid();
+    LEFT JOIN borrowing_repayments br ON bd.transaction_id = br.borrowing_id
+    WHERE bd.created_by = auth.uid()
+    GROUP BY bd.transaction_id, p.name, bd.initial_outstanding, bd.due_date, bd.status, bd.created_by;
 END;
 $$;
