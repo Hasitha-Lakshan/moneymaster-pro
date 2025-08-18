@@ -361,11 +361,6 @@ USING (false);
 -- Security Definer Functions
 -- ========================
 
--- Drop old views if they exist
-DROP VIEW IF EXISTS source_balances;
-DROP VIEW IF EXISTS lending_outstanding;
-DROP VIEW IF EXISTS borrowing_outstanding;
-
 -- Get source balances function
 CREATE OR REPLACE FUNCTION get_source_balances()
 RETURNS TABLE (
@@ -447,30 +442,28 @@ BEGIN
 
     -- Insert "from" transaction (positive amount, but represents outgoing)
     INSERT INTO transactions (date, amount, source_id, category_id, type_id, subcategory_id, notes, created_by)
-    VALUES (p_date, ABS(p_amount), p_source_id, p_category_id, p_type_id, p_subcategory_id, 
-            COALESCE(p_notes, '') || ' [Transfer Out]', auth.uid())
+    VALUES (p_date, ABS(p_amount), p_source_id, p_category_id, p_type_id, p_subcategory_id, p_notes, auth.uid())
     RETURNING * INTO from_txn;
 
     -- Insert "to" transaction (positive amount, represents incoming)
     INSERT INTO transactions (date, amount, source_id, category_id, type_id, subcategory_id, notes, created_by)
-    VALUES (p_date, ABS(p_amount), p_destination_id, p_category_id, p_type_id, p_subcategory_id, 
-            COALESCE(p_notes, '') || ' [Transfer In]', auth.uid())
+    VALUES (p_date, ABS(p_amount), p_destination_id, p_category_id, p_type_id, p_subcategory_id, p_notes, auth.uid())
     RETURNING * INTO to_txn;
 
-    -- Link them in transfers (removed created_by since column doesn't exist)
+    -- Link transactions in transfers table
     INSERT INTO transfers (id, transaction_from, transaction_to)
     VALUES (uuid_generate_v4(), from_txn.id, to_txn.id);
 
     -- Return both transactions
-    RETURN QUERY 
-    SELECT t.id AS transaction_id, 
-           t.date AS transaction_date, 
-           t.type_id AS transaction_type_id, 
-           t.category_id AS transaction_category_id, 
+    RETURN QUERY
+    SELECT t.id AS transaction_id,
+           t.date AS transaction_date,
+           t.type_id AS transaction_type_id,
+           t.category_id AS transaction_category_id,
            t.subcategory_id AS transaction_subcategory_id,
-           t.source_id AS transaction_source_id, 
-           t.amount AS transaction_amount, 
-           t.notes AS transaction_notes 
+           t.source_id AS transaction_source_id,
+           t.amount AS transaction_amount,
+           t.notes AS transaction_notes
     FROM transactions t
     WHERE t.id = from_txn.id OR t.id = to_txn.id;
 END;
@@ -524,20 +517,22 @@ BEGIN
         type_id = p_type_id,
         category_id = p_category_id,
         subcategory_id = p_subcategory_id,
-        notes = COALESCE(p_notes, '') || ' [Transfer Out]'
+        notes = p_notes
     WHERE id = from_txn_id
-      AND created_by = auth.uid();
+      AND created_by = auth.uid()
+    RETURNING * INTO STRICT from_txn_id;
 
-    -- Update "to" transaction
+     -- Update "to" transaction
     UPDATE transactions
     SET date = p_date,
         amount = ABS(p_amount),
         type_id = p_type_id,
         category_id = p_category_id,
         subcategory_id = p_subcategory_id,
-        notes = COALESCE(p_notes, '') || ' [Transfer In]'
+        notes = p_notes
     WHERE id = to_txn_id
-      AND created_by = auth.uid();
+      AND created_by = auth.uid()
+    RETURNING * INTO STRICT to_txn_id;
 
     -- Return both updated transactions
     RETURN QUERY
@@ -559,8 +554,6 @@ $$;
 -- Function: delete_transfer
 -- Deletes both sides of a transfer atomically
 -- =========================================
-DROP FUNCTION IF EXISTS delete_transfer(UUID);
-
 CREATE OR REPLACE FUNCTION delete_transfer(p_transfer_id UUID)
 RETURNS TABLE (
     transaction_id UUID
@@ -572,7 +565,6 @@ DECLARE
     from_txn_id UUID;
     to_txn_id   UUID;
 BEGIN
-    -- Get linked transactions
     SELECT transaction_from, transaction_to
     INTO from_txn_id, to_txn_id
     FROM transfers
@@ -582,7 +574,7 @@ BEGIN
         RAISE EXCEPTION 'Transfer not found';
     END IF;
 
-    -- Delete both transactions (return their IDs later)
+    -- Delete both transactions (trigger will adjust balances)
     DELETE FROM transactions
     WHERE id IN (from_txn_id, to_txn_id)
       AND created_by = auth.uid();
