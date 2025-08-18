@@ -7,6 +7,17 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ========================
+-- 0. ENUM Types
+-- ========================
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'transaction_direction') THEN
+        CREATE TYPE transaction_direction AS ENUM ('in', 'out');
+    END IF;
+END$$;
+
+-- ========================
 -- 1. Core Reference Tables
 -- ========================
 
@@ -75,6 +86,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     subcategory_id UUID REFERENCES subcategories(id) ON DELETE SET NULL,
     source_id UUID REFERENCES sources(id) ON DELETE SET NULL,
     amount DECIMAL(12,2) NOT NULL CHECK (amount >= 0),
+    direction transaction_direction NOT NULL DEFAULT 'out', -- 'in' for cash inflow, 'out' for cash outflow
     notes TEXT,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW(),

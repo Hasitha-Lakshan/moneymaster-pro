@@ -440,14 +440,14 @@ BEGIN
         RAISE EXCEPTION 'You do not own the destination account';
     END IF;
 
-    -- Insert "from" transaction (positive amount, but represents outgoing)
-    INSERT INTO transactions (date, amount, source_id, category_id, type_id, subcategory_id, notes, created_by)
-    VALUES (p_date, ABS(p_amount), p_source_id, p_category_id, p_type_id, p_subcategory_id, p_notes, auth.uid())
+    -- Insert "from" transaction (outgoing)
+    INSERT INTO transactions (date, amount, source_id, category_id, type_id, subcategory_id, notes, created_by, direction)
+    VALUES (p_date, ABS(p_amount), p_source_id, p_category_id, p_type_id, p_subcategory_id, p_notes, auth.uid(), 'out')
     RETURNING * INTO from_txn;
 
-    -- Insert "to" transaction (positive amount, represents incoming)
-    INSERT INTO transactions (date, amount, source_id, category_id, type_id, subcategory_id, notes, created_by)
-    VALUES (p_date, ABS(p_amount), p_destination_id, p_category_id, p_type_id, p_subcategory_id, p_notes, auth.uid())
+    -- Insert "to" transaction (incoming)
+    INSERT INTO transactions (date, amount, source_id, category_id, type_id, subcategory_id, notes, created_by, direction)
+    VALUES (p_date, ABS(p_amount), p_destination_id, p_category_id, p_type_id, p_subcategory_id, p_notes, auth.uid(), 'in')
     RETURNING * INTO to_txn;
 
     -- Link transactions in transfers table
@@ -468,7 +468,6 @@ BEGIN
     WHERE t.id = from_txn.id OR t.id = to_txn.id;
 END;
 $$;
-
 
 -- =========================================
 -- Function: update_transfer
@@ -517,7 +516,8 @@ BEGIN
         type_id = p_type_id,
         category_id = p_category_id,
         subcategory_id = p_subcategory_id,
-        notes = p_notes
+        notes = p_notes,
+        direction = 'out'
     WHERE id = from_txn_id
       AND created_by = auth.uid()
     RETURNING * INTO STRICT from_txn_id;
@@ -529,7 +529,8 @@ BEGIN
         type_id = p_type_id,
         category_id = p_category_id,
         subcategory_id = p_subcategory_id,
-        notes = p_notes
+        notes = p_notes,
+        direction = 'in'
     WHERE id = to_txn_id
       AND created_by = auth.uid()
     RETURNING * INTO STRICT to_txn_id;
@@ -548,7 +549,6 @@ BEGIN
     WHERE t.id = from_txn_id OR t.id = to_txn_id;
 END;
 $$;
-
 
 -- =========================================
 -- Function: delete_transfer

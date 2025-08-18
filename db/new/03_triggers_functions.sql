@@ -4,7 +4,7 @@
 -- ========================
 
 -- ========================
--- 1. Source Balance Update Function
+-- 1. Source Balance Update Function (direction-aware, credit card aware)
 -- ========================
 
 CREATE OR REPLACE FUNCTION update_source_balance()
@@ -12,102 +12,98 @@ RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    t_type TEXT;
+    amt_adjust NUMERIC;
     src_type TEXT;
-    signed_amt NUMERIC;
-
-    old_t_type TEXT;
-    old_src_type TEXT;
-    old_amt NUMERIC;
-
-    new_t_type TEXT;
-    new_src_type TEXT;
-    new_amt NUMERIC;
+    source_credit_limit NUMERIC;
+    is_credit_card BOOLEAN;
 BEGIN
-    -- ====================
     -- INSERT
-    -- ====================
     IF TG_OP = 'INSERT' THEN
         IF NEW.source_id IS NOT NULL THEN
-            SELECT name INTO t_type FROM transaction_types WHERE id = NEW.type_id;
-            src_type := (SELECT type FROM sources WHERE id = NEW.source_id);
-            signed_amt := NEW.amount;
+            SELECT s.type, (cc.credit_limit IS NOT NULL), COALESCE(cc.credit_limit, 0)
+            INTO src_type, is_credit_card, source_credit_limit
+            FROM sources s
+            LEFT JOIN credit_card_details cc ON s.id = cc.source_id
+            WHERE s.id = NEW.source_id;
+
+            amt_adjust := CASE NEW.direction
+                WHEN 'in' THEN NEW.amount
+                WHEN 'out' THEN -NEW.amount
+                ELSE 0
+            END;
 
             UPDATE sources
-            SET current_balance = current_balance -
-                CASE 
-                    WHEN src_type IN ('Bank Account','Cash','Digital Wallet') THEN signed_amt
-                    WHEN src_type = 'Credit Card' AND t_type = 'Expense' THEN -signed_amt
-                    WHEN src_type = 'Credit Card' AND t_type = 'Payment' THEN signed_amt
-                    ELSE 0
-                END
+            SET current_balance = current_balance + amt_adjust
             WHERE id = NEW.source_id;
-        END IF;
 
+        END IF;
         RETURN NEW;
     END IF;
 
-    -- ====================
     -- UPDATE
-    -- ====================
     IF TG_OP = 'UPDATE' THEN
-        -- Reverse OLD transaction
+        -- Reverse OLD
         IF OLD.source_id IS NOT NULL THEN
-            old_t_type := (SELECT name FROM transaction_types WHERE id = OLD.type_id);
-            old_src_type := (SELECT type FROM sources WHERE id = OLD.source_id);
-            old_amt := OLD.amount;
+            SELECT s.type, (cc.credit_limit IS NOT NULL), COALESCE(cc.credit_limit, 0)
+            INTO src_type, is_credit_card, source_credit_limit
+            FROM sources s
+            LEFT JOIN credit_card_details cc ON s.id = cc.source_id
+            WHERE s.id = OLD.source_id;
+
+            amt_adjust := CASE OLD.direction
+                WHEN 'in' THEN -OLD.amount
+                WHEN 'out' THEN OLD.amount
+                ELSE 0
+            END;
 
             UPDATE sources
-            SET current_balance = current_balance +
-                CASE
-                    WHEN old_src_type IN ('Bank Account','Cash','Digital Wallet') THEN old_amt
-                    WHEN old_src_type = 'Credit Card' AND old_t_type = 'Expense' THEN -old_amt
-                    WHEN old_src_type = 'Credit Card' AND old_t_type = 'Payment' THEN old_amt
-                    ELSE 0
-                END
+            SET current_balance = current_balance + amt_adjust
             WHERE id = OLD.source_id;
+
         END IF;
 
-        -- Apply NEW transaction
+        -- Apply NEW
         IF NEW.source_id IS NOT NULL THEN
-            new_t_type := (SELECT name FROM transaction_types WHERE id = NEW.type_id);
-            new_src_type := (SELECT type FROM sources WHERE id = NEW.source_id);
-            new_amt := NEW.amount;
+            SELECT s.type, (cc.credit_limit IS NOT NULL), COALESCE(cc.credit_limit, 0)
+            INTO src_type, is_credit_card, source_credit_limit
+            FROM sources s
+            LEFT JOIN credit_card_details cc ON s.id = cc.source_id
+            WHERE s.id = NEW.source_id;
+
+            amt_adjust := CASE NEW.direction
+                WHEN 'in' THEN NEW.amount
+                WHEN 'out' THEN -NEW.amount
+                ELSE 0
+            END;
 
             UPDATE sources
-            SET current_balance = current_balance -
-                CASE
-                    WHEN new_src_type IN ('Bank Account','Cash','Digital Wallet') THEN new_amt
-                    WHEN new_src_type = 'Credit Card' AND new_t_type = 'Expense' THEN -new_amt
-                    WHEN new_src_type = 'Credit Card' AND new_t_type = 'Payment' THEN new_amt
-                    ELSE 0
-                END
+            SET current_balance = current_balance + amt_adjust
             WHERE id = NEW.source_id;
-        END IF;
 
+        END IF;
         RETURN NEW;
     END IF;
 
-    -- ====================
     -- DELETE
-    -- ====================
     IF TG_OP = 'DELETE' THEN
         IF OLD.source_id IS NOT NULL THEN
-            t_type := (SELECT name FROM transaction_types WHERE id = OLD.type_id);
-            src_type := (SELECT type FROM sources WHERE id = OLD.source_id);
-            signed_amt := OLD.amount;
+            SELECT s.type, (cc.credit_limit IS NOT NULL), COALESCE(cc.credit_limit, 0)
+            INTO src_type, is_credit_card, source_credit_limit
+            FROM sources s
+            LEFT JOIN credit_card_details cc ON s.id = cc.source_id
+            WHERE s.id = OLD.source_id;
+
+            amt_adjust := CASE OLD.direction
+                WHEN 'in' THEN -OLD.amount
+                WHEN 'out' THEN OLD.amount
+                ELSE 0
+            END;
 
             UPDATE sources
-            SET current_balance = current_balance +
-                CASE 
-                    WHEN src_type IN ('Bank Account','Cash','Digital Wallet') THEN signed_amt
-                    WHEN src_type = 'Credit Card' AND t_type = 'Expense' THEN -signed_amt
-                    WHEN src_type = 'Credit Card' AND t_type = 'Payment' THEN signed_amt
-                    ELSE 0
-                END
+            SET current_balance = current_balance + amt_adjust
             WHERE id = OLD.source_id;
-        END IF;
 
+        END IF;
         RETURN OLD;
     END IF;
 
@@ -168,6 +164,7 @@ BEGIN
 END;
 $$;
 
+
 -- ========================
 -- 3. Triggers
 -- ========================
@@ -181,6 +178,7 @@ DROP TRIGGER IF EXISTS trg_update_investment_balance ON investment_details;
 CREATE TRIGGER trg_update_investment_balance
 AFTER INSERT OR UPDATE OR DELETE ON investment_details
 FOR EACH ROW EXECUTE FUNCTION update_investment_balance();
+
 
 -- ========================
 -- 4. Lending and Borrowing Functions (with current_outstanding)
