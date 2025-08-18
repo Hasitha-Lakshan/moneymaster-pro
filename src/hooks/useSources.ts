@@ -41,6 +41,9 @@ export const useSources = () => {
     currency: "USD",
     initial_balance: 0,
     notes: "",
+    credit_limit: 0,
+    interest_rate: 0,
+    billing_cycle_start: 1,
   });
 
   const { requestConfirmation, ConfirmationModalComponent } = useConfirmation();
@@ -50,7 +53,9 @@ export const useSources = () => {
     dispatch(fetchSources());
   }, [dispatch]);
 
+  // -------------------------
   // Handlers
+  // -------------------------
   const handleAddClick = () => {
     setEditingSourceId(null);
     setFormData({
@@ -59,18 +64,25 @@ export const useSources = () => {
       currency: "USD",
       initial_balance: 0,
       notes: "",
+      credit_limit: 0,
+      interest_rate: 0,
+      billing_cycle_start: 1,
     });
     setShowForm(true);
   };
 
   const handleEditClick = (source: Source) => {
     setEditingSourceId(source.id);
+    // Populate all fields including credit card details
     setFormData({
       name: source.name,
       type: source.type,
       currency: source.currency,
       initial_balance: source.initial_balance,
       notes: source.notes ?? "",
+      credit_limit: source.credit_limit,
+      interest_rate: source.interest_rate,
+      billing_cycle_start: source.billing_cycle_start,
     });
     setShowForm(true);
   };
@@ -82,18 +94,21 @@ export const useSources = () => {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("User not logged in");
 
-            // Ensure initial_balance is a number and set current_balance for new sources
+      // Ensure numeric fields
       const safeData = {
         ...data,
         initial_balance: data.initial_balance ?? 0,
         current_balance: data.initial_balance ?? 0,
+        credit_limit: data.credit_limit ?? 0,
+        interest_rate: data.interest_rate ?? 0,
+        billing_cycle_start: data.billing_cycle_start ?? 1,
       };
 
       if (editingSourceId) {
         // ------------------------
         // UPDATE EXISTING SOURCE
         // ------------------------
-        const { error } = await supabase
+        const { error: updateSourceError } = await supabase
           .from("sources")
           .update({
             name: safeData.name,
@@ -105,33 +120,35 @@ export const useSources = () => {
           .eq("id", editingSourceId)
           .eq("created_by", user.id);
 
-        if (error) throw error;
+        if (updateSourceError) throw updateSourceError;
 
-        // If Credit Card, update credit_card_details separately
+        // Update credit card details if needed
         if (safeData.type === "Credit Card") {
-          await supabase.from("credit_card_details").upsert({
-            source_id: editingSourceId,
-            credit_limit: data.credit_limit ?? 0,
-            interest_rate: data.interest_rate ?? 0,
-            billing_cycle_start: data.billing_cycle_start ?? null,
-          });
+          const { error: ccError } = await supabase
+            .from("credit_card_details")
+            .upsert({
+              source_id: editingSourceId,
+              credit_limit: safeData.credit_limit,
+              interest_rate: safeData.interest_rate,
+              billing_cycle_start: safeData.billing_cycle_start,
+            });
+          if (ccError) throw ccError;
         }
 
-        // Map to Redux type
         const updatedSource: Source = {
           id: editingSourceId,
           name: safeData.name,
           type: safeData.type,
           currency: safeData.currency,
-          balance: safeData.initial_balance, // keep balance as-is, do not overwrite current_balance
+          balance: safeData.initial_balance,
           initial_balance: safeData.initial_balance,
           notes: safeData.notes,
-          credit_limit: data.credit_limit,
-          interest_rate: data.interest_rate,
-          billing_cycle_start: data.billing_cycle_start,
+          credit_limit: safeData.credit_limit,
+          interest_rate: safeData.interest_rate,
+          billing_cycle_start: safeData.billing_cycle_start,
           available_credit:
-            data.type === "Credit Card"
-              ? data.credit_limit! - (safeData.initial_balance ?? 0)
+            safeData.type === "Credit Card"
+              ? safeData.credit_limit - safeData.initial_balance
               : undefined,
         };
 
@@ -139,38 +156,56 @@ export const useSources = () => {
         toast.success("Source updated successfully!");
       } else {
         // ------------------------
-        // ADD NEW SOURCE
+        // ADD NEW SOURCE (atomic)
         // ------------------------
-        const { data: newSource, error } = await supabase
+
+        // Step 1: Insert into 'sources' table (only valid columns)
+        const sourceInsertData = {
+          name: safeData.name,
+          type: safeData.type,
+          currency: safeData.currency,
+          initial_balance: safeData.initial_balance,
+          current_balance: safeData.current_balance,
+          notes: safeData.notes,
+          created_by: user.id,
+        };
+
+        const { data: newSource, error: insertSourceError } = await supabase
           .from("sources")
-          .insert([{ ...safeData, created_by: user.id }])
+          .insert([sourceInsertData])
           .select("*")
           .single();
 
-        if (error || !newSource) throw error;
+        if (insertSourceError || !newSource) throw insertSourceError;
 
-        // If Credit Card, insert into credit_card_details
+        // Step 2: Insert credit card details if Credit Card
         if (safeData.type === "Credit Card") {
-          await supabase.from("credit_card_details").insert({
-            source_id: newSource.id,
-            credit_limit: data.credit_limit ?? 0,
-            interest_rate: data.interest_rate ?? 0,
-            billing_cycle_start: data.billing_cycle_start ?? null,
-          });
+          const { error: ccInsertError } = await supabase
+            .from("credit_card_details")
+            .insert({
+              source_id: newSource.id,
+              credit_limit: safeData.credit_limit,
+              interest_rate: safeData.interest_rate,
+              billing_cycle_start: safeData.billing_cycle_start,
+            });
+          if (ccInsertError) {
+            // Rollback source insert
+            await supabase.from("sources").delete().eq("id", newSource.id);
+            throw new Error(
+              "Failed to insert credit card details. Source creation rolled back."
+            );
+          }
         }
 
-        // Fetch inserted source with credit card details
+        // Step 3: Fetch combined source with credit card details
         const { data: fetchedSource, error: fetchError } = await supabase
           .from("sources")
           .select(
-            `
-          *,
-          credit_card_details (
-            credit_limit,
-            interest_rate,
-            billing_cycle_start
-          )
-        `
+            `*, credit_card_details (
+              credit_limit,
+              interest_rate,
+              billing_cycle_start
+            )`
           )
           .eq("id", newSource.id)
           .single();
@@ -188,16 +223,16 @@ export const useSources = () => {
             fetchedSource.current_balance ?? fetchedSource.initial_balance ?? 0
           ),
           initial_balance: Number(fetchedSource.initial_balance ?? 0),
-          credit_limit: cc ? Number(cc.credit_limit) : data.credit_limit,
-          interest_rate: cc ? Number(cc.interest_rate) : data.interest_rate,
+          credit_limit: cc ? Number(cc.credit_limit) : safeData.credit_limit,
+          interest_rate: cc ? Number(cc.interest_rate) : safeData.interest_rate,
           billing_cycle_start:
-            cc?.billing_cycle_start ?? data.billing_cycle_start,
+            cc?.billing_cycle_start ?? safeData.billing_cycle_start,
           available_credit:
             fetchedSource.type === "Credit Card"
               ? cc
                 ? Number(cc.credit_limit) -
                   Number(fetchedSource.current_balance ?? 0)
-                : Number(data.credit_limit ?? 0) -
+                : safeData.credit_limit -
                   Number(fetchedSource.current_balance ?? 0)
               : undefined,
           notes: fetchedSource.notes,
@@ -221,7 +256,6 @@ export const useSources = () => {
       title: "Confirm Delete",
       message: `Are you sure you want to delete "${source.name}"?`,
     });
-
     if (!confirmed) return;
 
     try {
@@ -236,7 +270,6 @@ export const useSources = () => {
           .from("credit_card_details")
           .delete()
           .eq("source_id", source.id);
-
         if (ccError) throw ccError;
       }
 
@@ -246,7 +279,6 @@ export const useSources = () => {
         .delete()
         .eq("id", source.id)
         .eq("created_by", user.id);
-
       if (error) throw error;
 
       dispatch(deleteSource(source.id));

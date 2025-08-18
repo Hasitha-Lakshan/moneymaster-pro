@@ -81,7 +81,7 @@ export const fetchSources = createAsyncThunk<
     } = await supabase.auth.getUser();
     if (!user) throw new Error("User not logged in");
 
-    // Fetch sources + credit card details
+    // Fetch sources with credit card details
     const { data, error } = await supabase
       .from("sources")
       .select(
@@ -102,22 +102,26 @@ export const fetchSources = createAsyncThunk<
     // Map response to Source[]
     const mappedSources: Source[] = ((data as SupabaseSource[]) || []).map(
       (s) => {
-        const cc = s.credit_card_details ?? null; // null if no details
+        const cc = s.credit_card_details ?? null;
+
+        const currentBalance = Number(s.current_balance ?? 0);
+        const initialBalance = Number(s.initial_balance ?? 0);
+        const creditLimit = cc ? Number(cc.credit_limit) : 0;
+
         return {
           id: s.id,
           name: s.name,
           type: s.type,
           currency: s.currency,
-          balance: Number(s.current_balance ?? 0),
-          credit_limit: cc ? Number(cc.credit_limit) : undefined,
+          balance: currentBalance,
+          initial_balance: initialBalance,
+          credit_limit: creditLimit,
           interest_rate: cc ? Number(cc.interest_rate) : undefined,
-          billing_cycle_start: cc ? cc.billing_cycle_start : undefined,
+          billing_cycle_start: cc?.billing_cycle_start,
           available_credit:
-            s.type === "Credit Card"
-              ? cc
-                ? Number(cc.credit_limit) - Number(s.current_balance ?? 0)
-                : 0
-              : undefined,
+            s.type === "Credit Card" ? creditLimit - currentBalance : undefined,
+          total_outstanding:
+            s.type === "Credit Card" ? currentBalance : undefined,
           notes: s.notes,
         };
       }

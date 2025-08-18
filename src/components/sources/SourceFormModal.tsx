@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React from "react";
 
 // Matches new database schema for `sources`
 export interface SourceFormData {
@@ -23,72 +23,43 @@ export interface SourceFormData {
 interface SourceFormModalProps {
   visible: boolean;
   darkMode: boolean;
-  initialData: SourceFormData | null;
+  formData: SourceFormData; // fully controlled
+  onChange: (data: SourceFormData) => void; // propagate changes back to parent
   onCancel: () => void;
-  onSubmit: (data: SourceFormData) => void | Promise<void>; // allow async
+  onSubmit: (data: SourceFormData) => void | Promise<void>;
 }
 
 export const SourceFormModal: React.FC<SourceFormModalProps> = ({
   visible,
   darkMode,
-  initialData,
+  formData,
+  onChange,
   onCancel,
   onSubmit,
 }) => {
-  const [name, setName] = useState(initialData?.name || "");
-  const [type, setType] = useState<SourceFormData["type"]>(
-    initialData?.type || "Bank Account"
-  );
-  const [currency, setCurrency] = useState(initialData?.currency || "USD");
-  const [initialBalance, setInitialBalance] = useState(
-    initialData?.initial_balance?.toString() || ""
-  );
-  const [notes, setNotes] = useState(initialData?.notes || "");
+  if (!visible) return null;
 
-  // Credit card-specific fields
-  const [creditLimit, setCreditLimit] = useState(
-    initialData?.credit_limit?.toString() || ""
-  );
-  const [interestRate, setInterestRate] = useState(
-    initialData?.interest_rate?.toString() || ""
-  );
-  const [billingCycleStart, setBillingCycleStart] = useState(
-    initialData?.billing_cycle_start?.toString() || ""
-  );
-
-  // Reset form when modal opens/closes
-  useEffect(() => {
-    setName(initialData?.name || "");
-    setType(initialData?.type || "Bank Account");
-    setCurrency(initialData?.currency || "USD");
-    setInitialBalance(initialData?.initial_balance?.toString() || "");
-    setNotes(initialData?.notes || "");
-    setCreditLimit(initialData?.credit_limit?.toString() || "");
-    setInterestRate(initialData?.interest_rate?.toString() || "");
-    setBillingCycleStart(initialData?.billing_cycle_start?.toString() || "");
-  }, [initialData, visible]);
+  const handleInputChange = (
+    key: keyof SourceFormData,
+    value: string | number
+  ) => {
+    onChange({ ...formData, [key]: value });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const formData: SourceFormData = {
-      name,
-      type,
-      currency,
-      initial_balance: parseFloat(initialBalance || "0"),
-      notes,
+    // Convert numeric fields
+    const dataToSubmit: SourceFormData = {
+      ...formData,
+      initial_balance: Number(formData.initial_balance ?? 0),
+      credit_limit: Number(formData.credit_limit ?? 0),
+      interest_rate: Number(formData.interest_rate ?? 0),
+      billing_cycle_start: Number(formData.billing_cycle_start ?? 1),
     };
 
-    if (type === "Credit Card") {
-      formData.credit_limit = parseFloat(creditLimit || "0");
-      formData.interest_rate = parseFloat(interestRate || "0");
-      formData.billing_cycle_start = parseInt(billingCycleStart || "1", 10);
-    }
-
-    onSubmit(formData);
+    onSubmit(dataToSubmit);
   };
-
-  if (!visible) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -102,7 +73,7 @@ export const SourceFormModal: React.FC<SourceFormModalProps> = ({
             darkMode ? "text-white" : "text-gray-900"
           }`}
         >
-          {initialData ? "Edit Source" : "Add Source"}
+          {formData.name ? "Edit Source" : "Add Source"}
         </h3>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -117,8 +88,8 @@ export const SourceFormModal: React.FC<SourceFormModalProps> = ({
             </label>
             <input
               type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={formData.name}
+              onChange={(e) => handleInputChange("name", e.target.value)}
               placeholder="e.g., Chase Checking, Visa Card"
               className={`w-full px-3 py-2 border rounded-md ${
                 darkMode
@@ -139,10 +110,8 @@ export const SourceFormModal: React.FC<SourceFormModalProps> = ({
               Source Type *
             </label>
             <select
-              value={type}
-              onChange={(e) =>
-                setType(e.target.value as SourceFormData["type"])
-              }
+              value={formData.type}
+              onChange={(e) => handleInputChange("type", e.target.value)}
               className={`w-full px-3 py-2 border rounded-md ${
                 darkMode
                   ? "bg-gray-700 border-gray-600 text-white"
@@ -170,9 +139,11 @@ export const SourceFormModal: React.FC<SourceFormModalProps> = ({
             </label>
             <input
               type="text"
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value.toUpperCase())}
-              placeholder="e.g., USD, LKR"
+              value={formData.currency}
+              onChange={(e) =>
+                handleInputChange("currency", e.target.value.toUpperCase())
+              }
+              placeholder="USD"
               maxLength={3}
               className={`w-full px-3 py-2 border rounded-md uppercase ${
                 darkMode
@@ -183,6 +154,7 @@ export const SourceFormModal: React.FC<SourceFormModalProps> = ({
             />
           </div>
 
+          {/* Initial Balance */}
           {/* Initial Balance */}
           <div>
             <label
@@ -195,19 +167,22 @@ export const SourceFormModal: React.FC<SourceFormModalProps> = ({
             <input
               type="number"
               step="0.01"
-              value={initialBalance}
-              onChange={(e) => setInitialBalance(e.target.value)}
+              value={formData.initial_balance ?? ""}
+              onChange={(e) =>
+                handleInputChange("initial_balance", e.target.value)
+              }
               placeholder="1000.00"
               className={`w-full px-3 py-2 border rounded-md ${
                 darkMode
                   ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
                   : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
               }`}
+              disabled={!!formData.initial_balance} // disable if it exists
             />
           </div>
 
-          {/* Credit Card Extra Fields */}
-          {type === "Credit Card" && (
+          {/* Credit Card Fields */}
+          {formData.type === "Credit Card" && (
             <>
               <div>
                 <label
@@ -220,8 +195,10 @@ export const SourceFormModal: React.FC<SourceFormModalProps> = ({
                 <input
                   type="number"
                   step="0.01"
-                  value={creditLimit}
-                  onChange={(e) => setCreditLimit(e.target.value)}
+                  value={formData.credit_limit ?? ""}
+                  onChange={(e) =>
+                    handleInputChange("credit_limit", e.target.value)
+                  }
                   placeholder="5000.00"
                   className={`w-full px-3 py-2 border rounded-md ${
                     darkMode
@@ -241,8 +218,10 @@ export const SourceFormModal: React.FC<SourceFormModalProps> = ({
                 <input
                   type="number"
                   step="0.01"
-                  value={interestRate}
-                  onChange={(e) => setInterestRate(e.target.value)}
+                  value={formData.interest_rate ?? ""}
+                  onChange={(e) =>
+                    handleInputChange("interest_rate", e.target.value)
+                  }
                   placeholder="15.5"
                   className={`w-full px-3 py-2 border rounded-md ${
                     darkMode
@@ -261,10 +240,12 @@ export const SourceFormModal: React.FC<SourceFormModalProps> = ({
                 </label>
                 <input
                   type="number"
-                  min="1"
-                  max="31"
-                  value={billingCycleStart}
-                  onChange={(e) => setBillingCycleStart(e.target.value)}
+                  min={1}
+                  max={31}
+                  value={formData.billing_cycle_start ?? ""}
+                  onChange={(e) =>
+                    handleInputChange("billing_cycle_start", e.target.value)
+                  }
                   placeholder="1"
                   className={`w-full px-3 py-2 border rounded-md ${
                     darkMode
@@ -286,8 +267,8 @@ export const SourceFormModal: React.FC<SourceFormModalProps> = ({
               Notes
             </label>
             <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              value={formData.notes ?? ""}
+              onChange={(e) => handleInputChange("notes", e.target.value)}
               placeholder="Optional notes"
               className={`w-full px-3 py-2 border rounded-md ${
                 darkMode
@@ -314,7 +295,7 @@ export const SourceFormModal: React.FC<SourceFormModalProps> = ({
               type="submit"
               className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
             >
-              {initialData ? "Update" : "Add"} Source
+              {formData.name ? "Update" : "Add"} Source
             </button>
           </div>
         </form>

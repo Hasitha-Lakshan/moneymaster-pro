@@ -3,7 +3,7 @@ import { SourceFormModal } from "../components/sources/SourceFormModal";
 import { useSelector } from "react-redux";
 import type { RootState } from "../store/store";
 import { LoadingSpinner } from "../components/shared/LoadingSpinner";
-import { useSources, type SourceFormData } from "../hooks/useSources";
+import { useSources } from "../hooks/useSources";
 
 export const SourcesPage = () => {
   const darkMode = useSelector((state: RootState) => state.theme.darkMode);
@@ -13,27 +13,14 @@ export const SourcesPage = () => {
     sourcesSlice,
     showForm,
     setShowForm,
-    editingSourceId,
+    formData,
+    setFormData,
     handleAddClick,
     handleEditClick,
     handleFormSubmit,
     handleDeleteClick,
     ConfirmationModalComponent,
   } = useSources();
-
-  const initialData = editingSourceId
-    ? (() => {
-        const source = sources.find((s) => s.id === editingSourceId);
-        if (!source) return null;
-        return {
-          name: source.name,
-          type: source.type,
-          currency: source.currency,
-          initial_balance: source.initial_balance,
-          notes: source.notes ?? "",
-        } as SourceFormData;
-      })()
-    : null;
 
   if (sourcesSlice.loading) {
     return (
@@ -82,13 +69,13 @@ export const SourcesPage = () => {
         <SourceFormModal
           visible={showForm}
           darkMode={darkMode}
-          initialData={initialData}
+          formData={formData} // <-- pass controlled formData
+          onChange={setFormData} // <-- pass setter from hook
           onCancel={() => setShowForm(false)}
           onSubmit={handleFormSubmit}
         />
       )}
 
-      {/* Render the modal from the hook */}
       {ConfirmationModalComponent}
     </div>
   );
