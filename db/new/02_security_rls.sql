@@ -475,3 +475,127 @@ BEGIN
     WHERE t.id = from_txn.id OR t.id = to_txn.id;
 END;
 $$;
+
+
+-- =========================================
+-- Function: update_transfer
+-- Updates both sides of a transfer atomically
+-- =========================================
+CREATE OR REPLACE FUNCTION update_transfer(
+    p_transfer_id UUID,
+    p_amount NUMERIC,
+    p_date DATE,
+    p_type_id UUID,
+    p_category_id UUID DEFAULT NULL,
+    p_subcategory_id UUID DEFAULT NULL,
+    p_notes TEXT DEFAULT NULL
+)
+RETURNS TABLE (
+    transaction_id UUID,
+    transaction_date DATE,
+    transaction_type_id UUID,
+    transaction_category_id UUID,
+    transaction_subcategory_id UUID,
+    transaction_source_id UUID,
+    transaction_amount NUMERIC,
+    transaction_notes TEXT
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    from_txn_id UUID;
+    to_txn_id   UUID;
+BEGIN
+    -- Get linked transactions
+    SELECT transaction_from, transaction_to
+    INTO from_txn_id, to_txn_id
+    FROM transfers
+    WHERE id = p_transfer_id;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Transfer not found';
+    END IF;
+
+    -- Update "from" transaction
+    UPDATE transactions
+    SET date = p_date,
+        amount = ABS(p_amount),
+        type_id = p_type_id,
+        category_id = p_category_id,
+        subcategory_id = p_subcategory_id,
+        notes = COALESCE(p_notes, '') || ' [Transfer Out]'
+    WHERE id = from_txn_id
+      AND created_by = auth.uid();
+
+    -- Update "to" transaction
+    UPDATE transactions
+    SET date = p_date,
+        amount = ABS(p_amount),
+        type_id = p_type_id,
+        category_id = p_category_id,
+        subcategory_id = p_subcategory_id,
+        notes = COALESCE(p_notes, '') || ' [Transfer In]'
+    WHERE id = to_txn_id
+      AND created_by = auth.uid();
+
+    -- Return both updated transactions
+    RETURN QUERY
+    SELECT t.id AS transaction_id,
+           t.date AS transaction_date,
+           t.type_id AS transaction_type_id,
+           t.category_id AS transaction_category_id,
+           t.subcategory_id AS transaction_subcategory_id,
+           t.source_id AS transaction_source_id,
+           t.amount AS transaction_amount,
+           t.notes AS transaction_notes
+    FROM transactions t
+    WHERE t.id = from_txn_id OR t.id = to_txn_id;
+END;
+$$;
+
+
+-- =========================================
+-- Function: delete_transfer
+-- Deletes both sides of a transfer atomically
+-- =========================================
+DROP FUNCTION IF EXISTS delete_transfer(UUID);
+
+CREATE OR REPLACE FUNCTION delete_transfer(p_transfer_id UUID)
+RETURNS TABLE (
+    transaction_id UUID
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    from_txn_id UUID;
+    to_txn_id   UUID;
+BEGIN
+    -- Get linked transactions
+    SELECT transaction_from, transaction_to
+    INTO from_txn_id, to_txn_id
+    FROM transfers
+    WHERE id = p_transfer_id;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Transfer not found';
+    END IF;
+
+    -- Delete both transactions (return their IDs later)
+    DELETE FROM transactions
+    WHERE id IN (from_txn_id, to_txn_id)
+      AND created_by = auth.uid();
+
+    -- Delete transfer record
+    DELETE FROM transfers
+    WHERE id = p_transfer_id;
+
+    -- Return both deleted transaction IDs
+    transaction_id := from_txn_id;
+    RETURN NEXT;
+
+    transaction_id := to_txn_id;
+    RETURN NEXT;
+END;
+$$;
