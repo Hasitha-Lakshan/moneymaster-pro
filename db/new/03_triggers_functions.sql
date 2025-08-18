@@ -4,7 +4,7 @@
 -- ========================
 
 -- ========================
--- 1. Source Balance Update Function (direction-aware, credit card aware)
+-- 1. Source Balance Update Function (direction-aware, credit card aware) - CORRECTED
 -- ========================
 
 CREATE OR REPLACE FUNCTION update_source_balance()
@@ -13,41 +13,23 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
     amt_adjust NUMERIC;
-    src_type TEXT;
-    source_credit_limit NUMERIC;
     is_credit_card BOOLEAN;
+    old_type_name TEXT;
+    new_type_name TEXT;
 BEGIN
-    -- INSERT
-    IF TG_OP = 'INSERT' THEN
-        IF NEW.source_id IS NOT NULL THEN
-            SELECT s.type, (cc.credit_limit IS NOT NULL), COALESCE(cc.credit_limit, 0)
-            INTO src_type, is_credit_card, source_credit_limit
-            FROM sources s
-            LEFT JOIN credit_card_details cc ON s.id = cc.source_id
-            WHERE s.id = NEW.source_id;
-
-            amt_adjust := CASE NEW.direction
-                WHEN 'in' THEN NEW.amount
-                WHEN 'out' THEN -NEW.amount
-                ELSE 0
-            END;
-
-            UPDATE sources
-            SET current_balance = current_balance + amt_adjust
-            WHERE id = NEW.source_id;
-
-        END IF;
-        RETURN NEW;
+    -- Get transaction types to determine if this trigger should run
+    IF (TG_OP = 'UPDATE' OR TG_OP = 'DELETE') THEN
+        SELECT t.name INTO old_type_name FROM transaction_types t WHERE t.id = OLD.type_id;
+    END IF;
+    IF (TG_OP = 'UPDATE' OR TG_OP = 'INSERT') THEN
+        SELECT t.name INTO new_type_name FROM transaction_types t WHERE t.id = NEW.type_id;
     END IF;
 
-    -- UPDATE
-    IF TG_OP = 'UPDATE' THEN
-        -- Reverse OLD
-        IF OLD.source_id IS NOT NULL THEN
-            SELECT s.type, (cc.credit_limit IS NOT NULL), COALESCE(cc.credit_limit, 0)
-            INTO src_type, is_credit_card, source_credit_limit
-            FROM sources s
-            LEFT JOIN credit_card_details cc ON s.id = cc.source_id
+    -- For UPDATE operations, first reverse the OLD amount if it wasn't an investment
+    IF (TG_OP = 'UPDATE' AND old_type_name != 'Investment') THEN
+        IF OLD.source_id IS NOT NULL AND OLD.amount != 0 THEN
+            SELECT (cc.credit_limit IS NOT NULL) INTO is_credit_card
+            FROM sources s LEFT JOIN credit_card_details cc ON s.id = cc.source_id
             WHERE s.id = OLD.source_id;
 
             amt_adjust := CASE OLD.direction
@@ -56,18 +38,19 @@ BEGIN
                 ELSE 0
             END;
 
-            UPDATE sources
-            SET current_balance = current_balance + amt_adjust
-            WHERE id = OLD.source_id;
+            IF COALESCE(is_credit_card, FALSE) THEN
+                amt_adjust := amt_adjust * -1;
+            END IF;
 
+            UPDATE sources SET current_balance = current_balance + amt_adjust WHERE id = OLD.source_id;
         END IF;
+    END IF;
 
-        -- Apply NEW
-        IF NEW.source_id IS NOT NULL THEN
-            SELECT s.type, (cc.credit_limit IS NOT NULL), COALESCE(cc.credit_limit, 0)
-            INTO src_type, is_credit_card, source_credit_limit
-            FROM sources s
-            LEFT JOIN credit_card_details cc ON s.id = cc.source_id
+    -- For INSERT or UPDATE, apply the NEW amount if it's not an investment
+    IF ((TG_OP = 'INSERT' OR TG_OP = 'UPDATE') AND new_type_name != 'Investment') THEN
+        IF NEW.source_id IS NOT NULL AND NEW.amount != 0 THEN
+            SELECT (cc.credit_limit IS NOT NULL) INTO is_credit_card
+            FROM sources s LEFT JOIN credit_card_details cc ON s.id = cc.source_id
             WHERE s.id = NEW.source_id;
 
             amt_adjust := CASE NEW.direction
@@ -76,21 +59,19 @@ BEGIN
                 ELSE 0
             END;
 
-            UPDATE sources
-            SET current_balance = current_balance + amt_adjust
-            WHERE id = NEW.source_id;
+            IF COALESCE(is_credit_card, FALSE) THEN
+                amt_adjust := amt_adjust * -1;
+            END IF;
 
+            UPDATE sources SET current_balance = current_balance + amt_adjust WHERE id = NEW.source_id;
         END IF;
-        RETURN NEW;
     END IF;
 
-    -- DELETE
-    IF TG_OP = 'DELETE' THEN
-        IF OLD.source_id IS NOT NULL THEN
-            SELECT s.type, (cc.credit_limit IS NOT NULL), COALESCE(cc.credit_limit, 0)
-            INTO src_type, is_credit_card, source_credit_limit
-            FROM sources s
-            LEFT JOIN credit_card_details cc ON s.id = cc.source_id
+    -- For DELETE operations, reverse the amount if it wasn't an investment
+    IF (TG_OP = 'DELETE' AND old_type_name != 'Investment') THEN
+        IF OLD.source_id IS NOT NULL AND OLD.amount != 0 THEN
+            SELECT (cc.credit_limit IS NOT NULL) INTO is_credit_card
+            FROM sources s LEFT JOIN credit_card_details cc ON s.id = cc.source_id
             WHERE s.id = OLD.source_id;
 
             amt_adjust := CASE OLD.direction
@@ -99,12 +80,18 @@ BEGIN
                 ELSE 0
             END;
 
-            UPDATE sources
-            SET current_balance = current_balance + amt_adjust
-            WHERE id = OLD.source_id;
+            IF COALESCE(is_credit_card, FALSE) THEN
+                amt_adjust := amt_adjust * -1;
+            END IF;
 
+            UPDATE sources SET current_balance = current_balance + amt_adjust WHERE id = OLD.source_id;
         END IF;
+    END IF;
+
+    IF (TG_OP = 'DELETE') THEN
         RETURN OLD;
+    ELSE
+        RETURN NEW;
     END IF;
 
     RETURN NULL;
@@ -112,8 +99,56 @@ END;
 $$;
 
 
+-- ==============================================
+-- Function: auto-set direction for transactions
+-- ==============================================
+CREATE OR REPLACE FUNCTION set_transaction_direction()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    type_name TEXT;
+BEGIN
+    -- Lookup type name
+    SELECT name INTO type_name
+    FROM transaction_types
+    WHERE id = NEW.type_id;
+
+    -- Skip transfer type (direction already handled manually)
+    IF type_name = 'Transfer' THEN
+        RETURN NEW;
+    END IF;
+
+    -- Automatically assign direction based on type
+    CASE type_name
+        WHEN 'Income' THEN NEW.direction := 'in';
+        WHEN 'Expense' THEN NEW.direction := 'out';
+        WHEN 'Lend' THEN NEW.direction := 'out';
+        WHEN 'Borrow' THEN NEW.direction := 'in';
+        WHEN 'Payment' THEN NEW.direction := 'out';
+        -- Investment handled by separate function, but you can decide:
+        WHEN 'Investment' THEN NEW.direction := 'out';
+        ELSE
+            -- default safeguard
+            NEW.direction := 'out';
+    END CASE;
+
+    RETURN NEW;
+END;
+$$;
+
+-- ==============================================
+-- Trigger: call BEFORE insert/update on transactions
+-- ==============================================
+DROP TRIGGER IF EXISTS trg_set_transaction_direction ON transactions;
+CREATE TRIGGER trg_set_transaction_direction
+BEFORE INSERT OR UPDATE ON transactions
+FOR EACH ROW
+EXECUTE FUNCTION set_transaction_direction();
+
+
 -- ========================
--- 2. Investment Balance Update Function
+-- 2. Investment Balance Update Function - CORRECTED
 -- ========================
 
 CREATE OR REPLACE FUNCTION update_investment_balance()
@@ -121,46 +156,56 @@ RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    multiplier NUMERIC;
     delta NUMERIC;
+    original_effect NUMERIC;
 BEGIN
-    -- DELETE or UPDATE: reverse OLD record
-    IF TG_OP = 'DELETE' OR TG_OP = 'UPDATE' THEN
-        multiplier := -1;
+    -- For UPDATE or DELETE, reverse the effect of the OLD record
+    IF (TG_OP = 'UPDATE' OR TG_OP = 'DELETE') THEN
         delta := OLD.quantity * OLD.unit_price;
 
+        -- Determine the original effect on the balance
+        original_effect := CASE OLD.action
+            WHEN 'Buy' THEN delta
+            WHEN 'Dividend' THEN delta
+            WHEN 'Contribution' THEN delta -- A contribution originally INCREASED the balance
+            WHEN 'Sell' THEN -delta
+            WHEN 'Withdrawal' THEN -delta -- A withdrawal originally DECREased the balance
+            ELSE 0
+        END;
+
+        -- Reverse the original effect by subtracting it
         UPDATE sources
-        SET current_balance = current_balance +
-            CASE OLD.action
-                WHEN 'Buy' THEN  -delta * multiplier
-                WHEN 'Sell' THEN  delta * multiplier
-                WHEN 'Dividend' THEN -delta * multiplier
-                WHEN 'Contribution' THEN -delta * multiplier
-                WHEN 'Withdrawal' THEN  delta * multiplier
-                ELSE 0
-            END
+        SET current_balance = current_balance - original_effect
         WHERE id = OLD.source_id;
     END IF;
 
-    -- INSERT or UPDATE: apply NEW record
-    IF TG_OP = 'INSERT' OR TG_OP = 'UPDATE' THEN
-        multiplier := 1;
+    -- For UPDATE or INSERT, apply the effect of the NEW record
+    IF (TG_OP = 'UPDATE' OR TG_OP = 'INSERT') THEN
         delta := NEW.quantity * NEW.unit_price;
 
+        -- Determine the new effect on the balance
+        original_effect := CASE NEW.action
+            WHEN 'Buy' THEN delta
+            WHEN 'Dividend' THEN delta
+            WHEN 'Contribution' THEN delta -- A contribution INCREASES the balance
+            WHEN 'Sell' THEN -delta
+            WHEN 'Withdrawal' THEN -delta -- A withdrawal DECREASES the balance
+            ELSE 0
+        END;
+
+        -- Apply the new effect by adding it
         UPDATE sources
-        SET current_balance = current_balance +
-            CASE NEW.action
-                WHEN 'Buy' THEN  delta * multiplier
-                WHEN 'Sell' THEN -delta * multiplier
-                WHEN 'Dividend' THEN  delta * multiplier
-                WHEN 'Contribution' THEN -delta * multiplier
-                WHEN 'Withdrawal' THEN -delta * multiplier
-                ELSE 0
-            END
+        SET current_balance = current_balance + original_effect
         WHERE id = NEW.source_id;
     END IF;
 
-    RETURN NEW;
+    IF (TG_OP = 'DELETE') THEN
+        RETURN OLD;
+    ELSE
+        RETURN NEW;
+    END IF;
+    
+    RETURN NULL;
 END;
 $$;
 
