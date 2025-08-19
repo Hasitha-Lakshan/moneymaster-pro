@@ -1,8 +1,18 @@
-export const LoadingSpinner = () => {
+type LoadingSpinnerProps = {
+  size?: "sm" | "md" | "lg";
+};
+
+export const LoadingSpinner = ({ size = "md" }: LoadingSpinnerProps) => {
+  const sizeClasses = {
+    sm: "h-4 w-4",
+    md: "h-8 w-8",
+    lg: "h-12 w-12",
+  };
+
   return (
-    <div className="flex justify-center items-center py-10">
+    <div className="flex justify-center items-center py-2">
       <svg
-        className="animate-spin h-10 w-10 text-blue-600 dark:text-blue-400"
+        className={`animate-spin text-blue-600 dark:text-blue-400 ${sizeClasses[size]}`}
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
         viewBox="0 0 24 24"

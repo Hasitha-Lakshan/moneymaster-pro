@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import type { RootState } from "../store/store";
 import { LoadingSpinner } from "../components/shared/LoadingSpinner";
 import { useSources } from "../hooks/useSources";
+import { Plus } from "react-feather";
 
 export const SourcesPage = () => {
   const darkMode = useSelector((state: RootState) => state.theme.darkMode);
@@ -46,9 +47,15 @@ export const SourcesPage = () => {
         </h2>
         <button
           onClick={handleAddClick}
-          className="flex items-center space-x-2 px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white"
+          className={`group flex items-center gap-2 px-4 py-2 rounded-xl shadow-md transition-all
+    ${
+      darkMode
+        ? "bg-gray-800 hover:bg-gray-700 text-white"
+        : "bg-blue-600 hover:bg-blue-700 text-white"
+    }`}
         >
-          <span>Add Source</span>
+          <Plus className="h-5 w-5 transition-transform group-hover:rotate-90 group-hover:scale-110" />
+          <span className="hidden md:inline font-medium">Add Source</span>
         </button>
       </div>
 

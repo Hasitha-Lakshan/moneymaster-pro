@@ -88,14 +88,16 @@ export const CategoriesPage = () => {
         <div className="flex items-center space-x-4">
           <button
             onClick={openAddCategoryForm}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${
-              darkMode
-                ? "bg-blue-600 hover:bg-blue-700 text-white"
-                : "bg-blue-600 hover:bg-blue-700 text-white"
-            }`}
+            className={`group flex items-center gap-2 px-4 py-2 rounded-xl shadow-md transition-all
+    ${
+      darkMode
+        ? "bg-gray-800 hover:bg-gray-700 text-white"
+        : "bg-blue-600 hover:bg-blue-700 text-white"
+    }`}
           >
-            <Plus className="h-4 w-4" />
-            <span>Add Category</span>
+            <Plus className="h-5 w-5 transition-transform group-hover:rotate-90 group-hover:scale-110" />
+            {/* Hide text on small screens, show from md and up */}
+            <span className="hidden md:inline font-medium">Add Category</span>
           </button>
           <RestoreDefaultsButton />
         </div>

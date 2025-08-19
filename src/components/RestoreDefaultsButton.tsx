@@ -4,6 +4,8 @@ import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "../store/store";
 import { fetchCategories } from "../store/features/categoriesSlice";
 import { Toast, type ToastType } from "./shared/Toast";
+import { RotateCcw } from "react-feather";
+import { LoadingSpinner } from "./shared/LoadingSpinner";
 
 export const RestoreDefaultsButton = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -46,9 +48,18 @@ export const RestoreDefaultsButton = () => {
       <button
         onClick={handleRestore}
         disabled={loading}
-        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+        className="group flex items-center gap-2 px-4 py-2 rounded-xl shadow-md 
+                   bg-indigo-600 hover:bg-indigo-700 text-white 
+                   transition-all disabled:opacity-50"
       >
-        {loading ? "Restoring..." : "Restore Default Categories"}
+        {loading ? (
+          <LoadingSpinner size="sm" />
+        ) : (
+          <RotateCcw className="h-5 w-5 transition-transform group-hover:-rotate-45" />
+        )}
+        <span className="hidden md:inline font-medium">
+          {loading ? "Restoring..." : "Restore Defaults"}
+        </span>
       </button>
     </div>
   );
