@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { ConfirmationModal } from "../components/shared/ConfirmationModal";
+import type { RootState } from "../store/store";
+import { useSelector } from "react-redux";
 
 type ConfirmationOptions = {
   title?: string;
@@ -7,6 +9,7 @@ type ConfirmationOptions = {
 };
 
 export const useConfirmation = () => {
+  const darkMode = useSelector((state: RootState) => state.theme.darkMode);
   const [options, setOptions] = useState<ConfirmationOptions | null>(null);
   const [resolveFn, setResolveFn] = useState<((value: boolean) => void) | null>(
     null
@@ -33,6 +36,7 @@ export const useConfirmation = () => {
 
   const ConfirmationModalComponent = options ? (
     <ConfirmationModal
+      darkMode={darkMode}
       visible={true}
       title={options.title}
       message={options.message}

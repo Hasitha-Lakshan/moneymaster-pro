@@ -1,5 +1,5 @@
 import React from "react";
-import { X } from "react-feather";
+import { Plus, Save, X, XCircle } from "react-feather";
 
 type CategoryFormProps = {
   darkMode: boolean;
@@ -61,23 +61,43 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
             }`}
             required
           />
-          <div className="flex space-x-3">
+          <div className="flex gap-3">
+            {/* Cancel Button */}
             <button
               type="button"
               onClick={onClose}
-              className={`flex-1 px-4 py-2 border rounded-md transition-colors ${
-                darkMode
-                  ? "border-gray-600 text-gray-300 hover:bg-gray-700"
-                  : "border-gray-300 text-gray-700 hover:bg-gray-50"
-              }`}
+              className={`flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-medium shadow-sm transition-all duration-200
+      ${
+        darkMode
+          ? "border border-gray-600 text-gray-300 hover:bg-gray-700 active:scale-95"
+          : "border border-gray-300 text-gray-700 hover:bg-gray-100 active:scale-95"
+      }`}
             >
-              Cancel
+              <XCircle className="w-4 h-4" />
+              <span>Cancel</span>
             </button>
+
+            {/* Submit Button */}
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              className={`flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-medium shadow-md transition-all duration-200
+      ${
+        darkMode
+          ? "bg-blue-600 text-white hover:bg-blue-500 active:scale-95"
+          : "bg-blue-500 text-white hover:bg-blue-600 active:scale-95"
+      }`}
             >
-              {editingCategoryId ? "Save Changes" : "Add Category"}
+              {editingCategoryId ? (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>Save</span>
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4" />
+                  <span>Add</span>
+                </>
+              )}
             </button>
           </div>
         </form>
