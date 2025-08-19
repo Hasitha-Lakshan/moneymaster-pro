@@ -1,17 +1,15 @@
 // components/transactions/TransactionsTable.tsx
 import { Edit, Trash2 } from "react-feather";
 import { LoadingSpinner } from "../shared/LoadingSpinner";
-import {
-  removeTransaction,
-  type Transaction,
-} from "../../store/features/transactionsSlice";
-import type { AppDispatch, RootState } from "../../store/store";
-import { useDispatch, useSelector } from "react-redux";
+import type { Transaction } from "../../store/features/transactionsSlice";
+import type { RootState } from "../../store/store";
+import { useSelector } from "react-redux";
 
 interface TransactionsTableProps {
   transactions: Transaction[];
   darkMode: boolean;
   onEdit: (txn: Transaction) => void;
+  handleDeleteTransaction: (txnId: string) => void; // hook-based
   isLoading: boolean;
 }
 
@@ -19,9 +17,9 @@ export const TransactionsTable = ({
   transactions,
   darkMode,
   onEdit,
+  handleDeleteTransaction,
   isLoading,
 }: TransactionsTableProps) => {
-  const dispatch = useDispatch<AppDispatch>();
   const transactionTypes = useSelector(
     (state: RootState) => state.transactionTypes.types
   );
@@ -33,9 +31,7 @@ export const TransactionsTable = ({
   );
   const sources = useSelector((state: RootState) => state.sources.sources);
 
-  if (isLoading) {
-    return <LoadingSpinner />;
-  }
+  if (isLoading) return <LoadingSpinner />;
 
   return (
     <div className="overflow-x-auto">
@@ -100,7 +96,7 @@ export const TransactionsTable = ({
                     <Edit size={16} />
                   </button>
                   <button
-                    onClick={() => dispatch(removeTransaction(txn.id))}
+                    onClick={() => handleDeleteTransaction(txn.id)}
                     className="text-red-500 hover:text-red-700"
                   >
                     <Trash2 size={16} />

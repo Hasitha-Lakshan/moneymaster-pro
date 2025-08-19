@@ -20,8 +20,10 @@ export const TransactionsPage = () => {
     handleFormChange,
     handleSubmit,
     handleEdit,
+    handleDeleteTransaction,
     handleCancelEdit,
     resetForm,
+    ConfirmationModalComponent,
   } = useTransactions();
 
   const [showModal, setShowModal] = useState(false);
@@ -99,11 +101,13 @@ export const TransactionsPage = () => {
       />
 
       <TransactionsTable
+        handleDeleteTransaction={handleDeleteTransaction}
         transactions={transactions}
         darkMode={darkMode}
         onEdit={handleEditClick}
         isLoading={isLoading}
       />
+      {ConfirmationModalComponent}
     </div>
   );
 };

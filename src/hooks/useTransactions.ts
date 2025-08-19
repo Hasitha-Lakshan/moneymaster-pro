@@ -6,24 +6,26 @@ import {
   createTransaction,
   fetchTransactions,
   updateTransaction,
+  removeTransaction,
   type Transaction,
 } from "../store/features/transactionsSlice";
 import { fetchCategories } from "../store/features/categoriesSlice";
 import { fetchTransactionTypes } from "../store/features/transactionTypesSlice";
 import { fetchSources } from "../store/features/sourcesSlice";
+import { useConfirmation } from "./useConfirmation";
 
 export const useTransactions = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const { requestConfirmation, ConfirmationModalComponent } = useConfirmation();
 
-  // Redux state
   const { items: transactions, loading: txnLoading } = useSelector(
     (state: RootState) => state.transactions
   );
-  const { loading: catLoading } = useSelector(
-    (state: RootState) => state.categories
-  );
   const { types: transactionTypes, loading: typeLoading } = useSelector(
     (state: RootState) => state.transactionTypes
+  );
+  const { loading: catLoading } = useSelector(
+    (state: RootState) => state.categories
   );
   const { loading: sourcesLoading } = useSelector(
     (state: RootState) => state.sources
@@ -149,6 +151,17 @@ export const useTransactions = () => {
     resetForm();
   };
 
+  // --- Hook-based delete ---
+  const handleDeleteTransaction = async (txnId: string) => {
+    const confirmed = await requestConfirmation({
+      message:
+        "Are you sure you want to delete this transaction? This action cannot be undone.",
+    });
+    if (!confirmed) return;
+
+    dispatch(removeTransaction(txnId));
+  };
+
   const isLoading = txnLoading || catLoading || typeLoading || sourcesLoading;
 
   return {
@@ -166,5 +179,7 @@ export const useTransactions = () => {
     handleEdit,
     handleCancelEdit,
     resetForm,
+    handleDeleteTransaction,
+    ConfirmationModalComponent,
   };
 };
