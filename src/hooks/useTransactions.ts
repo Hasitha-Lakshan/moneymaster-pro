@@ -165,5 +165,6 @@ export const useTransactions = () => {
     handleSubmit,
     handleEdit,
     handleCancelEdit,
+    resetForm,
   };
 };

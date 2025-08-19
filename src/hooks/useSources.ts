@@ -11,23 +11,7 @@ import {
   fetchSources,
   type Source,
 } from "../store/features/sourcesSlice";
-
-export interface SourceFormData {
-  name: string;
-  type:
-    | "Bank Account"
-    | "Credit Card"
-    | "Cash"
-    | "Digital Wallet"
-    | "Other"
-    | "Investment";
-  currency: string;
-  initial_balance?: number;
-  notes?: string;
-  credit_limit?: number;
-  interest_rate?: number;
-  billing_cycle_start?: number;
-}
+import type { SourceFormData } from "../types/sources";
 
 export const useSources = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -75,6 +59,7 @@ export const useSources = () => {
     setEditingSourceId(source.id);
     // Populate all fields including credit card details
     setFormData({
+      id: source.id,
       name: source.name,
       type: source.type,
       currency: source.currency,

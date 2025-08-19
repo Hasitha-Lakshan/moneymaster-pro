@@ -23,7 +23,7 @@ export const SubCategoryForm: React.FC<SubCategoryFormProps> = ({
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <div
         className={`${
           darkMode ? "bg-gray-800" : "bg-white"
