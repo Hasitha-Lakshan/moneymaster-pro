@@ -164,7 +164,7 @@ export const DashboardPage = () => {
                               : "N/A"}
                           </td>
                           <td className="border border-gray-300 dark:border-gray-700 px-4 py-2">
-                            {txn.note || "-"}
+                            {txn.notes || "-"}
                           </td>
                         </tr>
                       );
