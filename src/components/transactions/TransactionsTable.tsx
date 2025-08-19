@@ -1,4 +1,3 @@
-// components/transactions/TransactionsTable.tsx
 import { Edit, Trash2 } from "react-feather";
 import { LoadingSpinner } from "../shared/LoadingSpinner";
 import type { Transaction } from "../../store/features/transactionsSlice";

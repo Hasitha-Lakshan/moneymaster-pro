@@ -1,4 +1,3 @@
-// pages/TransactionsPage.tsx
 import { useState } from "react";
 import { Toast } from "../components/shared/Toast";
 import { TransactionFormModal } from "../components/transactions/TransactionFormModal";

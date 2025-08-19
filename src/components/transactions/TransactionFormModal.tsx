@@ -1,4 +1,3 @@
-// components/transactions/TransactionFormModal.tsx
 import React from "react";
 import type { RootState } from "../../store/store";
 import { useSelector } from "react-redux";
