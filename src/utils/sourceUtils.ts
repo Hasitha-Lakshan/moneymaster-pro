@@ -9,8 +9,20 @@ export const getSourceIcon = (type: string) => {
   return icons[type] || "💰";
 };
 
-export const getBalanceColor = (balance: number, darkMode: boolean) => {
-  if (balance < 0) return darkMode ? "text-red-400" : "text-red-600";
-  if (balance > 10000) return darkMode ? "text-green-400" : "text-green-600";
-  return darkMode ? "text-white" : "text-gray-900";
+export const getBalanceColor = (balance: number): string => {
+  if (balance < 0) return "text-destructive"; // Red for negative balances
+  if (balance > 10000) return "text-success"; // Green for large positive balances
+  if (balance > 5000) return "text-warning"; // Yellow/gold for medium balances
+  return "text-card-foreground"; // Default text color for normal balances
+};
+
+// Optional: Enhanced version with more granular color ranges
+export const getDetailedBalanceColor = (balance: number): string => {
+  if (balance < 0) return "text-destructive"; // Red - Negative
+  if (balance === 0) return "text-muted-foreground"; // Gray - Zero
+  if (balance <= 1000) return "text-card-foreground"; // Default - Small positive
+  if (balance <= 5000) return "text-info"; // Blue - Medium
+  if (balance <= 10000) return "text-warning"; // Yellow - Large
+  if (balance <= 50000) return "text-success"; // Green - Very large
+  return "text-accent"; // Purple - Exceptional
 };

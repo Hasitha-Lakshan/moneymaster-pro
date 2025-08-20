@@ -4,7 +4,6 @@ import { Plus, RefreshCw, XCircle, X } from "react-feather";
 
 interface SourceFormModalProps {
   visible: boolean;
-  darkMode: boolean;
   formData: SourceFormData;
   onChange: (data: SourceFormData) => void;
   onCancel: () => void;
@@ -13,7 +12,6 @@ interface SourceFormModalProps {
 
 export const SourceFormModal: React.FC<SourceFormModalProps> = ({
   visible,
-  darkMode,
   formData,
   onChange,
   onCancel,
@@ -41,75 +39,43 @@ export const SourceFormModal: React.FC<SourceFormModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div
-        className={`${
-          darkMode ? "bg-gray-800/95" : "bg-white/95"
-        } rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto backdrop-blur-sm`}
-      >
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+      <div className="bg-card border-2 border-border rounded-2xl p-6 w-full max-w-4xl shadow-2xl transform transition-all duration-300 scale-95 hover:scale-100 mx-auto my-auto">
         {/* Header with Title + Close Button */}
-        <div className="flex justify-between items-center mb-4">
-          <h3
-            className={`text-lg font-semibold ${
-              darkMode ? "text-white" : "text-gray-900"
-            }`}
-          >
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-xl font-bold text-card-foreground">
             {formData.id ? "Edit Source" : "Add Source"}
           </h3>
           <button
             onClick={onCancel}
-            className={`p-1 rounded ${
-              darkMode
-                ? "text-gray-400 hover:text-white"
-                : "text-gray-600 hover:text-black"
-            }`}
+            className="p-2 rounded-full hover:bg-destructive/20 transition-all duration-200 hover:scale-110 group"
           >
-            <X />
+            <X className="w-5 h-5 text-muted-foreground group-hover:text-destructive transition-colors" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Source Name */}
-            <div>
-              <label
-                className={`block text-sm font-medium mb-1 ${
-                  darkMode ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
-                Source Name *
-              </label>
+            <div className="relative">
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => handleInputChange("name", e.target.value)}
-                placeholder="e.g., Chase Checking, Visa Card"
-                className={`w-full px-3 py-2 border rounded-md ${
-                  darkMode
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                }`}
+                placeholder="Source name"
+                className="w-full px-4 py-3 bg-background border-2 border-border rounded-xl text-card-foreground placeholder-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200"
                 required
+                autoFocus
               />
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/5 to-accent/5 opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
             </div>
 
             {/* Source Type */}
-            <div>
-              <label
-                className={`block text-sm font-medium mb-1 ${
-                  darkMode ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
-                Source Type *
-              </label>
+            <div className="relative">
               <select
                 value={formData.type}
                 onChange={(e) => handleInputChange("type", e.target.value)}
-                className={`w-full px-3 py-2 border rounded-md ${
-                  darkMode
-                    ? "bg-gray-700 border-gray-600 text-white"
-                    : "bg-white border-gray-300 text-gray-900"
-                }`}
+                className="relative z-10 w-full px-4 py-3 pr-12 bg-background border-2 border-border rounded-xl text-card-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 select-with-arrow appearance-none"
                 required
               >
                 <option value="Bank Account">Bank Account</option>
@@ -119,43 +85,27 @@ export const SourceFormModal: React.FC<SourceFormModalProps> = ({
                 <option value="Investment">Investment</option>
                 <option value="Other">Other</option>
               </select>
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/5 to-accent/5 opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
             </div>
 
             {/* Currency */}
-            <div>
-              <label
-                className={`block text-sm font-medium mb-1 ${
-                  darkMode ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
-                Currency *
-              </label>
+            <div className="relative">
               <input
                 type="text"
                 value={formData.currency}
                 onChange={(e) =>
                   handleInputChange("currency", e.target.value.toUpperCase())
                 }
-                placeholder="USD"
+                placeholder="Currency (e.g., USD)"
                 maxLength={3}
-                className={`w-full px-3 py-2 border rounded-md uppercase ${
-                  darkMode
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                }`}
+                className="w-full px-4 py-3 bg-background border-2 border-border rounded-xl text-card-foreground placeholder-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200"
                 required
               />
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/5 to-accent/5 opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
             </div>
 
             {/* Initial Balance */}
-            <div>
-              <label
-                className={`block text-sm font-medium mb-1 ${
-                  darkMode ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
-                Initial Balance
-              </label>
+            <div className="relative">
               <input
                 type="number"
                 step="0.01"
@@ -163,27 +113,17 @@ export const SourceFormModal: React.FC<SourceFormModalProps> = ({
                 onChange={(e) =>
                   handleInputChange("initial_balance", e.target.value)
                 }
-                placeholder="1000.00"
-                className={`w-full px-3 py-2 border rounded-md ${
-                  darkMode
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                }`}
+                placeholder="Initial balance"
+                className="w-full px-4 py-3 bg-background border-2 border-border rounded-xl text-card-foreground placeholder-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 disabled:opacity-50"
                 disabled={!!formData.id}
               />
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/5 to-accent/5 opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
             </div>
 
             {/* Credit Card Fields */}
             {formData.type === "Credit Card" && (
               <>
-                <div>
-                  <label
-                    className={`block text-sm font-medium mb-1 ${
-                      darkMode ? "text-gray-300" : "text-gray-700"
-                    }`}
-                  >
-                    Credit Limit
-                  </label>
+                <div className="relative">
                   <input
                     type="number"
                     step="0.01"
@@ -191,22 +131,12 @@ export const SourceFormModal: React.FC<SourceFormModalProps> = ({
                     onChange={(e) =>
                       handleInputChange("credit_limit", e.target.value)
                     }
-                    placeholder="5000.00"
-                    className={`w-full px-3 py-2 border rounded-md ${
-                      darkMode
-                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                    }`}
+                    placeholder="Credit limit"
+                    className="w-full px-4 py-3 bg-background border-2 border-border rounded-xl text-card-foreground placeholder-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200"
                   />
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/5 to-accent/5 opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
                 </div>
-                <div>
-                  <label
-                    className={`block text-sm font-medium mb-1 ${
-                      darkMode ? "text-gray-300" : "text-gray-700"
-                    }`}
-                  >
-                    Interest Rate (%)
-                  </label>
+                <div className="relative">
                   <input
                     type="number"
                     step="0.01"
@@ -214,22 +144,12 @@ export const SourceFormModal: React.FC<SourceFormModalProps> = ({
                     onChange={(e) =>
                       handleInputChange("interest_rate", e.target.value)
                     }
-                    placeholder="15.5"
-                    className={`w-full px-3 py-2 border rounded-md ${
-                      darkMode
-                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                    }`}
+                    placeholder="Interest rate (%)"
+                    className="w-full px-4 py-3 bg-background border-2 border-border rounded-xl text-card-foreground placeholder-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200"
                   />
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/5 to-accent/5 opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
                 </div>
-                <div>
-                  <label
-                    className={`block text-sm font-medium mb-1 ${
-                      darkMode ? "text-gray-300" : "text-gray-700"
-                    }`}
-                  >
-                    Billing Cycle Start (Day of Month)
-                  </label>
+                <div className="relative">
                   <input
                     type="number"
                     min={1}
@@ -238,81 +158,71 @@ export const SourceFormModal: React.FC<SourceFormModalProps> = ({
                     onChange={(e) =>
                       handleInputChange("billing_cycle_start", e.target.value)
                     }
-                    placeholder="1"
-                    className={`w-full px-3 py-2 border rounded-md ${
-                      darkMode
-                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                    }`}
+                    placeholder="Billing cycle start day"
+                    className="w-full px-4 py-3 bg-background border-2 border-border rounded-xl text-card-foreground placeholder-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200"
                   />
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/5 to-accent/5 opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
                 </div>
               </>
             )}
           </div>
 
           {/* Notes */}
-          <div>
-            <label
-              className={`block text-sm font-medium mb-1 ${
-                darkMode ? "text-gray-300" : "text-gray-700"
-              }`}
-            >
-              Notes
-            </label>
+          <div className="relative">
             <textarea
               value={formData.notes ?? ""}
               onChange={(e) => handleInputChange("notes", e.target.value)}
-              placeholder="Optional notes"
-              className={`w-full px-3 py-2 border rounded-md ${
-                darkMode
-                  ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                  : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-              }`}
-              rows={3}
+              placeholder="Notes (optional)"
+              className="w-full px-4 py-3 bg-background border-2 border-border rounded-xl text-card-foreground placeholder-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 resize-none"
+              rows={2}
             />
+            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/5 to-accent/5 opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-4">
+          <div className="flex gap-4 pt-4">
             {/* Cancel Button */}
             <button
               type="button"
               onClick={onCancel}
-              className={`flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-medium shadow-sm transition-all duration-200
-      ${
-        darkMode
-          ? "border border-gray-600 text-gray-300 hover:bg-gray-700 active:scale-95"
-          : "border border-gray-300 text-gray-700 hover:bg-gray-100 active:scale-95"
-      }`}
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold border-2 border-border hover:border-destructive/50 bg-background text-muted-foreground hover:text-destructive transition-all duration-200 hover:scale-105 group"
             >
-              <XCircle className="w-4 h-4" />
+              <XCircle className="w-5 h-5 text-muted-foreground group-hover:text-destructive transition-colors" />
               <span>Cancel</span>
             </button>
 
             {/* Submit Button */}
             <button
               type="submit"
-              className={`flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-medium shadow-md transition-all duration-200
-      ${
-        darkMode
-          ? "bg-blue-600 text-white hover:bg-blue-500 active:scale-95"
-          : "bg-blue-500 text-white hover:bg-blue-600 active:scale-95"
-      }`}
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold bg-primary text-primary-foreground shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 group relative overflow-hidden"
             >
-              {formData.name ? (
-                <>
-                  <RefreshCw className="w-4 h-4" />
-                  <span>Update</span>
-                </>
-              ) : (
-                <>
-                  <Plus className="w-4 h-4" />
-                  <span>Add</span>
-                </>
-              )}
+              {/* Gradient background */}
+              <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent opacity-100 group-hover:opacity-90 transition-opacity" />
+
+              {/* Content */}
+              <span className="relative z-10 flex items-center gap-2">
+                {formData.id ? (
+                  <>
+                    <RefreshCw className="w-5 h-5 text-primary-foreground group-hover:scale-110 transition-transform" />
+                    <span>Update</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-5 h-5 text-primary-foreground group-hover:scale-110 transition-transform" />
+                    <span>Add</span>
+                  </>
+                )}
+              </span>
+
+              {/* Hover effect */}
+              <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
             </button>
           </div>
         </form>
+
+        {/* Decorative Elements */}
+        <div className="absolute top-0 left-0 w-20 h-20 bg-primary/10 rounded-full -translate-x-10 -translate-y-10 blur-xl" />
+        <div className="absolute bottom-0 right-0 w-16 h-16 bg-accent/10 rounded-full translate-x-8 translate-y-8 blur-xl" />
       </div>
     </div>
   );

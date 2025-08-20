@@ -14,10 +14,12 @@ import { LoadingSpinner } from "./components/shared/LoadingSpinner";
 
 export const App = () => {
   const dispatch = useDispatch();
-  const darkMode = useSelector((state: RootState) => state.theme.darkMode);
   const user = useSelector((state: RootState) => state.auth.user);
 
   const [loadingSession, setLoadingSession] = useState(true);
+  const [loadingMessage, setLoadingMessage] = useState(
+    "Loading your session..."
+  );
 
   // Check and insert default data once per user session
   async function checkAndInsertDefaults(userId: string) {
@@ -34,6 +36,7 @@ export const App = () => {
       }
 
       if (!data || !data.defaults_inserted) {
+        setLoadingMessage("Setting up your account...");
         const { error: insertError } = await supabase.rpc(
           "insert_default_data",
           {
@@ -67,9 +70,13 @@ export const App = () => {
     // Add timeout as fallback
     const timeout = setTimeout(() => {
       console.warn("Session loading timed out - clearing auth state");
-      dispatch(setUser(null));
-      sessionStorage.clear();
-      finishLoading();
+      setLoadingMessage("Taking longer than expected...");
+
+      setTimeout(() => {
+        dispatch(setUser(null));
+        sessionStorage.clear();
+        finishLoading();
+      }, 1000);
     }, 8000); // 8 seconds timeout
 
     // First check with better error handling
@@ -80,7 +87,7 @@ export const App = () => {
 
         if (error) {
           console.error("Error getting session:", error);
-          // If there's an auth error, clear everything and start fresh
+          setLoadingMessage("Authentication error - restarting...");
           await supabase.auth.signOut();
           dispatch(setUser(null));
           sessionStorage.clear();
@@ -96,6 +103,7 @@ export const App = () => {
           const now = Math.floor(Date.now() / 1000);
           if (session.expires_at < now) {
             console.log("Session expired, signing out");
+            setLoadingMessage("Session expired - redirecting...");
             await supabase.auth.signOut();
             dispatch(setUser(null));
             sessionStorage.clear();
@@ -106,6 +114,7 @@ export const App = () => {
 
         if (sessionUser) {
           try {
+            setLoadingMessage("Welcome back! Loading your data...");
             const appUser = mapSupabaseUserToAppUser(sessionUser);
             dispatch(setUser(appUser));
 
@@ -115,7 +124,7 @@ export const App = () => {
             }
           } catch (err) {
             console.error("Error mapping user:", err);
-            // If user mapping fails, clear auth state
+            setLoadingMessage("Error loading profile - restarting...");
             await supabase.auth.signOut();
             dispatch(setUser(null));
             sessionStorage.clear();
@@ -130,7 +139,7 @@ export const App = () => {
       .catch(async (err) => {
         clearTimeout(timeout);
         console.error("Unexpected session error:", err);
-        // On any unexpected error, clear auth state
+        setLoadingMessage("Unexpected error - please wait...");
         await supabase.auth.signOut();
         dispatch(setUser(null));
         sessionStorage.clear();
@@ -145,6 +154,7 @@ export const App = () => {
         }
 
         if (event === "SIGNED_OUT") {
+          setLoadingMessage("Signing out...");
           dispatch(setUser(null));
           sessionStorage.clear();
           finishLoading();
@@ -160,6 +170,7 @@ export const App = () => {
             session.expires_at < Math.floor(Date.now() / 1000)
           ) {
             console.log("Received expired session, signing out");
+            setLoadingMessage("Session expired - redirecting...");
             await supabase.auth.signOut();
             return;
           }
@@ -203,8 +214,19 @@ export const App = () => {
 
   if (loadingSession) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
-        <LoadingSpinner />
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-6">
+        <div className="text-center mb-6">
+          <LoadingSpinner size="lg" />
+        </div>
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-card-foreground mb-2">
+            Money Master Pro
+          </h2>
+          <p className="text-muted-foreground text-sm animate-pulse">
+            {loadingMessage}
+          </p>
+        </div>
+        <div className="mt-8 w-48 h-1 bg-gradient-to-r from-primary to-accent rounded-full opacity-50 animate-pulse-gentle" />
       </div>
     );
   }
@@ -214,16 +236,13 @@ export const App = () => {
   }
 
   return (
-    <div
-      className={`min-h-screen transition-colors duration-300 ${
-        darkMode ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-900"
-      }`}
-    >
+    <div className="min-h-screen bg-background text-foreground transition-all duration-300">
       <Header />
 
-      <main className="pt-16 pb-16">
+      <main className="pt-18 pb-16">
         <AppRoutes />
       </main>
+
       <Footer />
     </div>
   );

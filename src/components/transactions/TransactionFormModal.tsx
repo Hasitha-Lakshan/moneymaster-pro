@@ -31,7 +31,6 @@ interface TransactionFormModalProps {
 
 export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
   visible,
-  darkMode,
   formData,
   isTransfer,
   editId,
@@ -81,38 +80,26 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div
-        className={`${
-          darkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"
-        } rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-xl transition-all duration-200`}
-      >
+   <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <div className="bg-card rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-pastel border-2 border-border transition-all duration-300">
         {/* Header with Title + Close Button */}
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-xl font-bold text-card-foreground">
             {editId ? "Edit Transaction" : "Add Transaction"}
           </h3>
           <button
             onClick={onCancel}
-            className={`p-1 rounded ${
-              darkMode
-                ? "text-gray-400 hover:text-white"
-                : "text-gray-600 hover:text-black"
-            }`}
+            className="p-2 rounded-full hover:bg-destructive/20 transition-all duration-200 hover:scale-110 group"
           >
-            <X />
+            <X className="h-5 w-5 text-muted-foreground group-hover:text-destructive transition-colors" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Date */}
-            <div>
-              <label
-                className={`block text-sm font-medium mb-1 ${
-                  darkMode ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
+            <div className="relative">
+              <label className="block text-sm font-semibold mb-2 text-card-foreground">
                 Date *
               </label>
               <input
@@ -120,33 +107,22 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
                 name="date"
                 value={formData.date}
                 onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-md ${
-                  darkMode
-                    ? "bg-gray-700 border-gray-600 text-white"
-                    : "bg-white border-gray-300 text-gray-900"
-                }`}
+                className="w-full px-4 py-3 border-2 border-border rounded-xl bg-background text-card-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200"
                 required
               />
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/5 to-accent/5 opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
             </div>
 
             {/* Type */}
-            <div>
-              <label
-                className={`block text-sm font-medium mb-1 ${
-                  darkMode ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
+            <div className="relative">
+              <label className="block text-sm font-semibold mb-2 text-card-foreground">
                 Type *
               </label>
               <select
                 name="type_id"
                 value={formData.type_id}
                 onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-md ${
-                  darkMode
-                    ? "bg-gray-700 border-gray-600 text-white"
-                    : "bg-white border-gray-300 text-gray-900"
-                }`}
+                className="w-full px-4 py-3 border-2 border-border rounded-xl bg-background text-card-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 select-with-arrow"
                 required
               >
                 <option value="">Select Type</option>
@@ -156,28 +132,21 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
                   </option>
                 ))}
               </select>
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/5 to-accent/5 opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
             </div>
 
             {/* Category & Subcategory */}
             {!isTransfer && (
               <>
-                <div>
-                  <label
-                    className={`block text-sm font-medium mb-1 ${
-                      darkMode ? "text-gray-300" : "text-gray-700"
-                    }`}
-                  >
+                <div className="relative">
+                  <label className="block text-sm font-semibold mb-2 text-card-foreground">
                     Category *
                   </label>
                   <select
                     name="category_id"
                     value={formData.category_id}
                     onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-md ${
-                      darkMode
-                        ? "bg-gray-700 border-gray-600 text-white"
-                        : "bg-white border-gray-300 text-gray-900"
-                    }`}
+                    className="w-full px-4 py-3 border-2 border-border rounded-xl bg-background text-card-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 select-with-arrow"
                     required={!isTransfer}
                   >
                     <option value="">Select Category</option>
@@ -187,25 +156,18 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
                       </option>
                     ))}
                   </select>
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/5 to-accent/5 opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
                 </div>
 
-                <div>
-                  <label
-                    className={`block text-sm font-medium mb-1 ${
-                      darkMode ? "text-gray-300" : "text-gray-700"
-                    }`}
-                  >
+                <div className="relative">
+                  <label className="block text-sm font-semibold mb-2 text-card-foreground">
                     Subcategory
                   </label>
                   <select
                     name="subcategory_id"
                     value={formData.subcategory_id}
                     onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-md ${
-                      darkMode
-                        ? "bg-gray-700 border-gray-600 text-white"
-                        : "bg-white border-gray-300 text-gray-900"
-                    }`}
+                    className="w-full px-4 py-3 border-2 border-border rounded-xl bg-background text-card-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 select-with-arrow"
                     disabled={!formData.category_id}
                   >
                     <option value="">Select Subcategory</option>
@@ -217,28 +179,21 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
                         </option>
                       ))}
                   </select>
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/5 to-accent/5 opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
                 </div>
               </>
             )}
 
             {/* Source */}
-            <div>
-              <label
-                className={`block text-sm font-medium mb-1 ${
-                  darkMode ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
+            <div className="relative">
+              <label className="block text-sm font-semibold mb-2 text-card-foreground">
                 Source *
               </label>
               <select
                 name="source_id"
                 value={formData.source_id}
                 onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-md ${
-                  darkMode
-                    ? "bg-gray-700 border-gray-600 text-white"
-                    : "bg-white border-gray-300 text-gray-900"
-                }`}
+                className="w-full px-4 py-3 border-2 border-border rounded-xl bg-background text-card-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 select-with-arrow"
                 required
               >
                 <option value="">Select Source</option>
@@ -248,27 +203,20 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
                   </option>
                 ))}
               </select>
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/5 to-accent/5 opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
             </div>
 
             {/* Destination */}
             {isTransfer && (
-              <div>
-                <label
-                  className={`block text-sm font-medium mb-1 ${
-                    darkMode ? "text-gray-300" : "text-gray-700"
-                  }`}
-                >
+              <div className="relative">
+                <label className="block text-sm font-semibold mb-2 text-card-foreground">
                   Destination *
                 </label>
                 <select
                   name="destination_source_id"
                   value={formData.destination_source_id}
                   onChange={handleInputChange}
-                  className={`w-full px-3 py-2 border rounded-md ${
-                    darkMode
-                      ? "bg-gray-700 border-gray-600 text-white"
-                      : "bg-white border-gray-300 text-gray-900"
-                  }`}
+                  className="w-full px-4 py-3 border-2 border-border rounded-xl bg-background text-card-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 select-with-arrow"
                   required={isTransfer}
                 >
                   <option value="">Select Destination</option>
@@ -280,16 +228,13 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
                       </option>
                     ))}
                 </select>
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/5 to-accent/5 opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
               </div>
             )}
 
             {/* Amount */}
-            <div>
-              <label
-                className={`block text-sm font-medium mb-1 ${
-                  darkMode ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
+            <div className="relative">
+              <label className="block text-sm font-semibold mb-2 text-card-foreground">
                 Amount *
               </label>
               <input
@@ -299,22 +244,15 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
                 onChange={handleInputChange}
                 placeholder="0.00"
                 step="0.01"
-                className={`w-full px-3 py-2 border rounded-md ${
-                  darkMode
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                }`}
+                className="w-full px-4 py-3 border-2 border-border rounded-xl bg-background text-card-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200"
                 required
               />
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/5 to-accent/5 opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
             </div>
 
             {/* Notes */}
-            <div className="md:col-span-2">
-              <label
-                className={`block text-sm font-medium mb-1 ${
-                  darkMode ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
+            <div className="md:col-span-2 relative">
+              <label className="block text-sm font-semibold mb-2 text-card-foreground">
                 Notes
               </label>
               <textarea
@@ -322,55 +260,55 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
                 value={formData.notes}
                 onChange={handleInputChange}
                 placeholder="Optional notes"
-                className={`w-full px-3 py-2 border rounded-md ${
-                  darkMode
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                }`}
+                className="w-full px-4 py-3 border-2 border-border rounded-xl bg-background text-card-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 resize-none"
                 rows={3}
               />
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/5 to-accent/5 opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
             </div>
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3">
+          <div className="flex gap-4 pt-4">
             <button
               type="button"
               onClick={onCancel}
-              className={`flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-medium shadow-sm transition-all duration-200
-      ${
-        darkMode
-          ? "border border-gray-600 text-gray-300 hover:bg-gray-700 active:scale-95"
-          : "border border-gray-300 text-gray-700 hover:bg-gray-100 active:scale-95"
-      }`}
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold border-2 border-border hover:border-destructive/50 bg-background text-muted-foreground hover:text-destructive transition-all duration-200 hover:scale-105 group"
             >
-              <XCircle className="w-4 h-4" />
+              <XCircle className="h-5 w-5 text-muted-foreground group-hover:text-destructive transition-colors" />
               <span>Cancel</span>
             </button>
 
             <button
               type="submit"
-              className={`flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-medium shadow-md transition-all duration-200
-      ${
-        darkMode
-          ? "bg-blue-600 text-white hover:bg-blue-500 active:scale-95"
-          : "bg-blue-500 text-white hover:bg-blue-600 active:scale-95"
-      }`}
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold bg-primary text-primary-foreground shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 group relative overflow-hidden"
             >
-              {editId ? (
-                <>
-                  <RefreshCw className="w-4 h-4" />
-                  <span>Update</span>
-                </>
-              ) : (
-                <>
-                  <Plus className="w-4 h-4" />
-                  <span>Add</span>
-                </>
-              )}
+              {/* Shine effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent opacity-100 group-hover:opacity-90 transition-opacity" />
+
+              {/* Content */}
+              <span className="relative z-10 flex items-center gap-2">
+                {editId ? (
+                  <>
+                    <RefreshCw className="h-5 w-5 text-primary-foreground group-hover:scale-110 transition-transform" />
+                    <span>Update Transaction</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-5 w-5 text-primary-foreground group-hover:scale-110 transition-transform" />
+                    <span>Add Transaction</span>
+                  </>
+                )}
+              </span>
+
+              {/* Hover effect */}
+              <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
             </button>
           </div>
         </form>
+
+        {/* Decorative Elements */}
+        <div className="absolute top-0 left-0 w-20 h-20 bg-primary/10 rounded-full -translate-x-10 -translate-y-10 blur-xl" />
+        <div className="absolute bottom-0 right-0 w-16 h-16 bg-accent/10 rounded-full translate-x-8 translate-y-8 blur-xl" />
       </div>
     </div>
   );

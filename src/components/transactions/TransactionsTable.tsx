@@ -1,6 +1,4 @@
-// components/transactions/TransactionsTable.tsx
-import { Edit, Edit2, Trash2 } from "react-feather";
-import { LoadingSpinner } from "../shared/LoadingSpinner";
+import { Edit2, Trash2, RefreshCw } from "react-feather";
 import type { Transaction } from "../../store/features/transactionsSlice";
 import type { RootState } from "../../store/store";
 import { useSelector } from "react-redux";
@@ -15,7 +13,6 @@ interface TransactionsTableProps {
 
 export const TransactionsTable = ({
   transactions,
-  darkMode,
   onEdit,
   handleDeleteTransaction,
   isLoading,
@@ -31,44 +28,61 @@ export const TransactionsTable = ({
   );
   const sources = useSelector((state: RootState) => state.sources.sources);
 
-  if (isLoading) return <LoadingSpinner />;
-
   const getAmountStyle = (txn: Transaction) => {
-    if (txn.destination_source_id) return "text-blue-500"; // transfer
+    if (txn.destination_source_id) return "text-info"; // transfer - using info color
     const typeName =
       transactionTypes.find((t) => t.id.toString() === txn.type_id)?.name || "";
     return typeName.toLowerCase().includes("income")
-      ? "text-green-500 font-semibold"
-      : "text-red-500 font-semibold";
+      ? "text-success font-semibold"
+      : "text-destructive font-semibold";
+  };
+
+  const getAmountColor = (txn: Transaction) => {
+    if (txn.destination_source_id) return "text-info"; // transfer
+    const typeName =
+      transactionTypes.find((t) => t.id.toString() === txn.type_id)?.name || "";
+    return typeName.toLowerCase().includes("income")
+      ? "text-success"
+      : "text-destructive";
   };
 
   return (
     <div>
       {/* Desktop Table */}
-      <div className="hidden md:block overflow-x-auto">
-        <table
-          className={`w-full border-collapse shadow-md rounded-xl overflow-hidden ${
-            darkMode ? "bg-gray-900 text-white" : "bg-white text-gray-900"
-          }`}
-        >
+      <div className="hidden md:block overflow-x-auto rounded-xl border-border border-2 bg-card shadow-pastel">
+        <table className="w-full border-collapse">
           <thead>
-            <tr className={`${darkMode ? "bg-gray-800" : "bg-gray-100"}`}>
-              <th className="p-3 text-left text-sm font-semibold">Date</th>
-              <th className="p-3 text-left text-sm font-semibold">Type</th>
-              <th className="p-3 text-left text-sm font-semibold">Category</th>
-              <th className="p-3 text-left text-sm font-semibold">
+            <tr className="bg-muted/50">
+              <th className="p-4 text-left text-sm font-semibold text-card-foreground">
+                Date
+              </th>
+              <th className="p-4 text-left text-sm font-semibold text-card-foreground">
+                Type
+              </th>
+              <th className="p-4 text-left text-sm font-semibold text-card-foreground">
+                Category
+              </th>
+              <th className="p-4 text-left text-sm font-semibold text-card-foreground">
                 Subcategory
               </th>
-              <th className="p-3 text-left text-sm font-semibold">Source</th>
+              <th className="p-4 text-left text-sm font-semibold text-card-foreground">
+                Source
+              </th>
               {/* Only show Destination column if at least one transfer exists */}
               {transactions.some((txn) => txn.destination_source_id) && (
-                <th className="p-3 text-left text-sm font-semibold">
+                <th className="p-4 text-left text-sm font-semibold text-card-foreground">
                   Destination
                 </th>
               )}
-              <th className="p-3 text-left text-sm font-semibold">Amount</th>
-              <th className="p-3 text-left text-sm font-semibold">Notes</th>
-              <th className="p-3 text-left text-sm font-semibold">Actions</th>
+              <th className="p-4 text-left text-sm font-semibold text-card-foreground">
+                Amount
+              </th>
+              <th className="p-4 text-left text-sm font-semibold text-card-foreground">
+                Notes
+              </th>
+              <th className="p-4 text-left text-sm font-semibold text-card-foreground">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -81,29 +95,29 @@ export const TransactionsTable = ({
               return (
                 <tr
                   key={txn.id}
-                  className={`border-t transition-colors ${
-                    darkMode ? "hover:bg-gray-800" : "hover:bg-gray-50"
-                  }`}
+                  className="border-t border-border/50 transition-colors hover:bg-muted/20 group"
                 >
-                  <td className="p-3 text-sm">{txn.date}</td>
-                  <td className="p-3 text-sm">
+                  <td className="p-4 text-sm text-card-foreground">
+                    {txn.date}
+                  </td>
+                  <td className="p-4 text-sm text-card-foreground">
                     {isTxnTransfer ? "Transfer" : typeName}
                   </td>
-                  <td className="p-3 text-sm">
+                  <td className="p-4 text-sm text-card-foreground">
                     {categories.find((c) => c.id === txn.category_id)?.name ||
                       "-"}
                   </td>
-                  <td className="p-3 text-sm">
+                  <td className="p-4 text-sm text-card-foreground">
                     {subCategories.find((s) => s.id === txn.subcategory_id)
                       ?.name || "-"}
                   </td>
-                  <td className="p-3 text-sm">
+                  <td className="p-4 text-sm text-card-foreground">
                     {sources.find((s) => s.id === txn.source_id)?.name}
                   </td>
 
                   {/* Only render destination if transfer */}
                   {transactions.some((t) => t.destination_source_id) && (
-                    <td className="p-3 text-sm">
+                    <td className="p-4 text-sm text-card-foreground">
                       {isTxnTransfer
                         ? sources.find(
                             (s) => s.id === txn.destination_source_id
@@ -112,23 +126,33 @@ export const TransactionsTable = ({
                     </td>
                   )}
 
-                  <td className={`p-3 text-sm ${getAmountStyle(txn)}`}>
+                  <td
+                    className={`p-4 text-sm font-semibold ${getAmountStyle(
+                      txn
+                    )}`}
+                  >
                     {txn.amount.toFixed(2)}
                   </td>
-                  <td className="p-3 text-sm">{txn.notes || "-"}</td>
-                  <td className="p-3 flex gap-2">
-                    <button
-                      onClick={() => onEdit(txn)}
-                      className="p-1.5 rounded-lg hover:bg-yellow-100 dark:hover:bg-gray-700 transition"
-                    >
-                      <Edit size={16} className="text-yellow-500" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteTransaction(txn.id)}
-                      className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-gray-700 transition"
-                    >
-                      <Trash2 size={16} className="text-red-500" />
-                    </button>
+                  <td className="p-4 text-sm text-muted-foreground">
+                    {txn.notes || "-"}
+                  </td>
+                  <td className="p-4">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => onEdit(txn)}
+                        className="p-2 rounded-full bg-primary/10 hover:bg-primary/20 transition-all duration-200 hover:scale-110 group-hover:opacity-100 opacity-70"
+                        title="Edit transaction"
+                      >
+                        <Edit2 className="h-4 w-4 text-primary" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTransaction(txn.id)}
+                        className="p-2 rounded-full bg-destructive/10 hover:bg-destructive/20 transition-all duration-200 hover:scale-110 group-hover:opacity-100 opacity-70"
+                        title="Delete transaction"
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );
@@ -136,6 +160,7 @@ export const TransactionsTable = ({
           </tbody>
         </table>
       </div>
+
       {/* Mobile Card View */}
       <div className="grid gap-4 md:hidden">
         {transactions.map((txn) => {
@@ -147,79 +172,47 @@ export const TransactionsTable = ({
           return (
             <div
               key={txn.id}
-              className={`p-4 rounded-lg border transition hover:shadow-md ${
-                darkMode
-                  ? "bg-gray-800 border-gray-700"
-                  : "bg-white border-gray-200"
-              }`}
+              className="p-5 rounded-xl border-2 border-border bg-card shadow-pastel hover:shadow-lg transition-all duration-300 group"
             >
               {/* Header */}
-              <div className="flex justify-between items-center mb-3">
+              <div className="flex justify-between items-center mb-4">
                 <div>
-                  <h3
-                    className={`text-base font-semibold ${
-                      darkMode ? "text-white" : "text-gray-900"
-                    }`}
-                  >
+                  <h3 className="text-base font-semibold text-card-foreground group-hover:text-primary transition-colors">
                     {isTxnTransfer ? "Transfer" : typeName}
                   </h3>
-                  <p
-                    className={`text-xs ${
-                      darkMode ? "text-gray-400" : "text-gray-600"
-                    }`}
-                  >
+                  <p className="text-xs text-muted-foreground mt-1">
                     {txn.date}
                   </p>
                 </div>
                 <div className="flex space-x-2">
                   <button
                     onClick={() => onEdit(txn)}
-                    className={`p-1 rounded ${
-                      darkMode
-                        ? "text-blue-400 hover:bg-gray-700"
-                        : "text-blue-600 hover:bg-gray-100"
-                    }`}
+                    className="p-2 rounded-full bg-primary/10 hover:bg-primary/20 transition-all duration-200 hover:scale-110"
                   >
-                    <Edit2 className="h-4 w-4" />
+                    <Edit2 className="h-4 w-4 text-primary" />
                   </button>
                   <button
                     onClick={() => handleDeleteTransaction(txn.id)}
-                    className={`p-1 rounded ${
-                      darkMode
-                        ? "text-red-400 hover:bg-gray-700"
-                        : "text-red-600 hover:bg-gray-100"
-                    }`}
+                    className="p-2 rounded-full bg-destructive/10 hover:bg-destructive/20 transition-all duration-200 hover:scale-110"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4 text-destructive" />
                   </button>
                 </div>
               </div>
 
               {/* Body */}
-              <div className="space-y-1 text-sm">
+              <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span
-                    className={`${
-                      darkMode ? "text-gray-400" : "text-gray-600"
-                    }`}
-                  >
-                    Category
-                  </span>
-                  <span className="font-medium">
+                  <span className="text-muted-foreground">Category</span>
+                  <span className="font-medium text-card-foreground">
                     {categories.find((c) => c.id === txn.category_id)?.name ||
                       "-"}
                   </span>
                 </div>
 
                 <div className="flex justify-between">
-                  <span
-                    className={`${
-                      darkMode ? "text-gray-400" : "text-gray-600"
-                    }`}
-                  >
-                    Subcategory
-                  </span>
-                  <span className="font-medium">
+                  <span className="text-muted-foreground">Subcategory</span>
+                  <span className="font-medium text-card-foreground">
                     {subCategories.find((s) => s.id === txn.subcategory_id)
                       ?.name || "-"}
                   </span>
@@ -227,14 +220,8 @@ export const TransactionsTable = ({
 
                 {/* Source */}
                 <div className="flex justify-between">
-                  <span
-                    className={`${
-                      darkMode ? "text-gray-400" : "text-gray-600"
-                    }`}
-                  >
-                    Source
-                  </span>
-                  <span className="font-medium">
+                  <span className="text-muted-foreground">Source</span>
+                  <span className="font-medium text-card-foreground">
                     {sources.find((s) => s.id === txn.source_id)?.name}
                   </span>
                 </div>
@@ -242,14 +229,8 @@ export const TransactionsTable = ({
                 {/* Destination → only for transfers */}
                 {txn.destination_source_id && (
                   <div className="flex justify-between">
-                    <span
-                      className={`${
-                        darkMode ? "text-gray-400" : "text-gray-600"
-                      }`}
-                    >
-                      Destination
-                    </span>
-                    <span className="font-medium">
+                    <span className="text-muted-foreground">Destination</span>
+                    <span className="font-medium text-card-foreground">
                       {
                         sources.find((s) => s.id === txn.destination_source_id)
                           ?.name
@@ -258,41 +239,38 @@ export const TransactionsTable = ({
                   </div>
                 )}
 
-                <div className="flex justify-between border-t pt-2 mt-2">
-                  <span
-                    className={`font-medium ${
-                      darkMode ? "text-gray-300" : "text-gray-700"
-                    }`}
-                  >
+                <div className="flex justify-between border-t border-border/50 pt-3 mt-2">
+                  <span className="font-medium text-card-foreground">
                     Amount
                   </span>
-                  <span
-                    className={`text-lg font-bold ${
-                      isTxnTransfer
-                        ? "text-blue-500"
-                        : typeName.toLowerCase().includes("income")
-                        ? "text-green-500"
-                        : "text-red-500"
-                    }`}
-                  >
+                  <span className={`text-lg font-bold ${getAmountColor(txn)}`}>
                     {txn.amount.toFixed(2)}
                   </span>
                 </div>
 
                 {txn.notes && (
-                  <p
-                    className={`mt-2 text-xs italic ${
-                      darkMode ? "text-gray-400" : "text-gray-600"
-                    }`}
-                  >
-                    {txn.notes}
-                  </p>
+                  <div className="mt-3 p-3 bg-muted/30 rounded-lg">
+                    <p className="text-xs text-muted-foreground italic">
+                      {txn.notes}
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
           );
         })}
       </div>
+
+      {transactions.length === 0 && !isLoading && (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="w-20 h-20 rounded-full bg-muted/20 flex items-center justify-center mb-4">
+            <RefreshCw className="h-10 w-10 text-muted-foreground/50" />
+          </div>
+          <p className="text-muted-foreground text-lg font-medium">
+            No transactions found. Add your first transaction to get started!
+          </p>
+        </div>
+      )}
     </div>
   );
 };

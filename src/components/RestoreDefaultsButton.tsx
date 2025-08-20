@@ -48,18 +48,27 @@ export const RestoreDefaultsButton = () => {
       <button
         onClick={handleRestore}
         disabled={loading}
-        className="group flex items-center gap-2 px-4 py-2 rounded-xl shadow-md 
-                   bg-indigo-600 hover:bg-indigo-700 text-white 
-                   transition-all disabled:opacity-50"
+        className="group flex items-center gap-2 px-6 py-3 rounded-xl font-semibold 
+                 shadow-pastel hover:shadow-lg transform hover:scale-105 
+                 transition-all duration-200 disabled:opacity-50 
+                 disabled:transform-none disabled:hover:shadow-pastel
+                 relative overflow-hidden bg-restore text-restore-foreground
+                 border-2 border-restore/50 hover:border-restore/70"
       >
-        {loading ? (
-          <LoadingSpinner size="sm" />
-        ) : (
-          <RotateCcw className="h-5 w-5 transition-transform group-hover:-rotate-45" />
-        )}
-        <span className="hidden md:inline font-medium">
-          {loading ? "Restoring..." : "Restore Defaults"}
+        {/* Content */}
+        <span className="flex items-center gap-2">
+          {loading ? (
+            <LoadingSpinner size="sm" />
+          ) : (
+            <RotateCcw className="h-5 w-5 transition-transform group-hover:-rotate-45" />
+          )}
+          <span className="hidden md:inline font-medium">
+            {loading ? "Restoring..." : "Restore Defaults"}
+          </span>
         </span>
+
+        {/* Hover effect */}
+        <div className="absolute inset-0 bg-white/15 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
       </button>
     </div>
   );

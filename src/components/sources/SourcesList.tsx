@@ -3,22 +3,23 @@ import { SourceCard } from "./SourceCard";
 
 interface SourcesListProps {
   sources: Source[];
-  darkMode: boolean;
   onEdit: (sourceId: string) => void;
   onDelete: (sourceId: string, name: string) => void;
 }
 
 export const SourcesList: React.FC<SourcesListProps> = ({
   sources,
-  darkMode,
   onEdit,
   onDelete,
 }) => {
   if (!sources || sources.length === 0) {
     return (
-      <p className={`${darkMode ? "text-gray-300" : "text-gray-700"}`}>
-        No sources available. Click "Add Source" to create one.
-      </p>
+      <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+        <p className="text-muted-foreground text-lg mb-6 font-medium">
+          ✨ No sources available yet. Click <strong>Add Source</strong> to get
+          started!
+        </p>
+      </div>
     );
   }
 
@@ -28,7 +29,6 @@ export const SourcesList: React.FC<SourcesListProps> = ({
         <SourceCard
           key={source.id}
           source={source}
-          darkMode={darkMode}
           onEdit={() => onEdit(source.id)}
           onDelete={() => onDelete(source.id, source.name)}
         />

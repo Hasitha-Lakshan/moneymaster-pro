@@ -5,6 +5,7 @@ import { TransactionsTable } from "../components/transactions/TransactionsTable"
 import { useTransactions } from "../hooks/useTransactions";
 import type { Transaction } from "../store/features/transactionsSlice";
 import { Plus } from "react-feather";
+import { LoadingSpinner } from "../components/shared/LoadingSpinner";
 
 export const TransactionsPage = () => {
   const {
@@ -55,12 +56,21 @@ export const TransactionsPage = () => {
     setShowModal(true);
   };
 
+  if (isLoading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-64">
+        <div className="text-center">
+          <LoadingSpinner />
+          <p className="text-muted-foreground mt-4">
+            Loading your transactions...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div
-      className={`${
-        darkMode ? "bg-gray-900 text-white" : "bg-white text-gray-900"
-      } min-h-screen p-6`}
-    >
+    <div className="min-h-screen p-6 bg-background text-foreground">
       {toastMessage && (
         <Toast
           message={toastMessage}
@@ -69,19 +79,16 @@ export const TransactionsPage = () => {
         />
       )}
 
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Transactions</h1>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold text-card-foreground">
+          Transactions
+        </h1>
         <button
           onClick={handleAddClick}
-          className={`group flex items-center gap-2 px-4 py-2 rounded-xl shadow-md transition-all
-    ${
-      darkMode
-        ? "bg-gray-800 hover:bg-gray-700 text-white"
-        : "bg-blue-600 hover:bg-blue-700 text-white"
-    }`}
+          className="btn-primary px-6 py-3 rounded-xl font-semibold flex items-center space-x-2 transition-all duration-300 hover:scale-105 hover:shadow-lg group"
         >
           <Plus className="h-5 w-5 transition-transform group-hover:rotate-90 group-hover:scale-110" />
-          <span className="hidden md:inline font-medium">Add Transaction</span>
+          <span>Add Transaction</span>
         </button>
       </div>
 
@@ -104,8 +111,9 @@ export const TransactionsPage = () => {
         transactions={transactions}
         darkMode={darkMode}
         onEdit={handleEditClick}
-        isLoading={isLoading}
+        isLoading={false} // Now handled in parent component
       />
+
       {ConfirmationModalComponent}
     </div>
   );

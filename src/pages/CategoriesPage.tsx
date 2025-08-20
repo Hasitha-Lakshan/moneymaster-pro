@@ -1,6 +1,4 @@
 import { Plus } from "react-feather";
-import { useSelector } from "react-redux";
-import type { RootState } from "../store/store";
 import { RestoreDefaultsButton } from "../components/RestoreDefaultsButton";
 import { useCategories } from "../hooks/useCategories";
 import { CategoryList } from "../components/categories/CategoryList";
@@ -10,8 +8,6 @@ import type { Category, SubCategory } from "../types/categories";
 import { LoadingSpinner } from "../components/shared/LoadingSpinner";
 
 export const CategoriesPage = () => {
-  const darkMode = useSelector((state: RootState) => state.theme.darkMode);
-
   const {
     categoriesSlice,
     expandedCategories,
@@ -65,11 +61,12 @@ export const CategoriesPage = () => {
 
   if (categoriesSlice.loading) {
     return (
-      <div className="p-6">
-        <div
-          className={`text-center ${darkMode ? "text-white" : "text-gray-900"}`}
-        >
+      <div className="p-6 flex items-center justify-center min-h-64">
+        <div className="text-center">
           <LoadingSpinner />
+          <p className="text-muted-foreground mt-4">
+            Loading your categories...
+          </p>
         </div>
       </div>
     );
@@ -77,35 +74,35 @@ export const CategoriesPage = () => {
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2
-          className={`text-3xl font-bold ${
-            darkMode ? "text-white" : "text-gray-900"
-          }`}
-        >
-          Categories
-        </h2>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <h2 className="text-3xl font-bold text-card-foreground">Categories</h2>
         <div className="flex items-center space-x-4">
+          {/* Add Category Button */}
           <button
             onClick={openAddCategoryForm}
-            className={`group flex items-center gap-2 px-4 py-2 rounded-xl shadow-md transition-all
-    ${
-      darkMode
-        ? "bg-gray-800 hover:bg-gray-700 text-white"
-        : "bg-blue-600 hover:bg-blue-700 text-white"
-    }`}
+            className="group flex items-center gap-2 px-6 py-3 rounded-xl font-semibold bg-primary text-primary-foreground shadow-pastel hover:shadow-lg transform hover:scale-105 transition-all duration-200 relative overflow-hidden"
           >
-            <Plus className="h-5 w-5 transition-transform group-hover:rotate-90 group-hover:scale-110" />
-            {/* Hide text on small screens, show from md and up */}
-            <span className="hidden md:inline font-medium">Add Category</span>
+            {/* Gradient background */}
+            <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent opacity-100 group-hover:opacity-90 transition-opacity" />
+
+            {/* Content */}
+            <span className="relative z-10 flex items-center gap-2">
+              <Plus className="h-5 w-5 text-primary-foreground group-hover:scale-110 transition-transform" />
+              <span className="hidden md:inline font-medium">Add Category</span>
+            </span>
+
+            {/* Hover effect */}
+            <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
           </button>
+
           <RestoreDefaultsButton />
         </div>
       </div>
 
+      {/* Category List */}
       <CategoryList
         categories={categoriesSlice.categories}
-        darkMode={darkMode}
         expandedCategories={expandedCategories}
         toggleCategory={toggleCategory}
         getCategorySubCategories={getCategorySubCategories}
@@ -116,8 +113,8 @@ export const CategoriesPage = () => {
         handleDeleteSubCategory={handleDeleteSubCategory}
       />
 
+      {/* Forms */}
       <CategoryForm
-        darkMode={darkMode}
         visible={showAddCategoryForm}
         onClose={() => setShowAddCategoryForm(false)}
         categoryName={categoryName}
@@ -127,7 +124,6 @@ export const CategoriesPage = () => {
       />
 
       <SubCategoryForm
-        darkMode={darkMode}
         visible={showAddSubCategoryForm}
         onClose={() => setShowAddSubCategoryForm(false)}
         subCategoryName={subCategoryName}
@@ -135,6 +131,7 @@ export const CategoriesPage = () => {
         onSubmit={handleSubCategorySubmit}
         editingSubCategoryId={editingSubCategoryId}
       />
+
       {ConfirmationModalComponent}
     </div>
   );

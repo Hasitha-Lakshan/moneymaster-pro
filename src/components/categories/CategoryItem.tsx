@@ -9,7 +9,6 @@ type CategoryItemProps = {
   category: Category;
   subCategories: SubCategory[];
   isExpanded: boolean;
-  darkMode: boolean;
   toggleCategory: (id: string) => void;
   openEditCategoryForm: (category: Category) => void;
   handleDeleteCategory: (id: string) => void;
@@ -22,7 +21,6 @@ export const CategoryItem: React.FC<CategoryItemProps> = ({
   category,
   subCategories,
   isExpanded,
-  darkMode,
   toggleCategory,
   openEditCategoryForm,
   handleDeleteCategory,
@@ -31,98 +29,74 @@ export const CategoryItem: React.FC<CategoryItemProps> = ({
   handleDeleteSubCategory,
 }) => {
   return (
-    <div
-      className={`border rounded-lg ${
-        darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
-      }`}
-    >
+    <div className="border-border border-2 rounded-xl bg-card shadow-pastel hover:shadow-lg transition-all duration-300">
       <div className="p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <button
               onClick={() => toggleCategory(category.id)}
-              className={`p-1 rounded ${
-                darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-              }`}
+              className="p-2 rounded-full hover:bg-accent/30 transition-all duration-200 hover:scale-105"
             >
               <RefreshCw
-                className={`h-4 w-4 transition-transform ${
-                  isExpanded ? "rotate-90" : ""
-                } ${darkMode ? "text-gray-400" : "text-gray-600"}`}
+                className={`h-5 w-5 transition-all duration-300 ${
+                  isExpanded
+                    ? "rotate-90 text-primary"
+                    : "text-muted-foreground"
+                }`}
               />
             </button>
-            <h3
-              className={`font-semibold ${
-                darkMode ? "text-white" : "text-gray-900"
-              }`}
-            >
+            <h3 className="font-bold text-lg text-card-foreground">
               {category.name}
             </h3>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs px-3 py-1 rounded-full bg-secondary text-secondary-foreground font-medium">
               {subCategories.length} subcategories
             </span>
           </div>
           <div className="flex space-x-2">
             <button
               onClick={() => openEditCategoryForm(category)}
-              className={`p-1 rounded ${
-                darkMode
-                  ? "text-blue-400 hover:bg-gray-700"
-                  : "text-blue-600 hover:bg-gray-100"
-              }`}
+              className="p-2 rounded-full bg-primary/10 hover:bg-primary/20 transition-all duration-200 hover:scale-110 group"
             >
-              <Edit2 className="h-4 w-4" />
+              <Edit2 className="h-5 w-5 text-primary group-hover:text-primary-foreground transition-colors" />
             </button>
             <button
               onClick={() => handleDeleteCategory(category.id)}
-              className={`p-1 rounded ${
-                darkMode
-                  ? "text-red-400 hover:bg-gray-700"
-                  : "text-red-600 hover:bg-gray-100"
-              }`}
+              className="p-2 rounded-full bg-destructive/10 hover:bg-destructive/20 transition-all duration-200 hover:scale-110 group"
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-5 w-5 text-destructive group-hover:text-destructive-foreground transition-colors" />
             </button>
           </div>
         </div>
 
         {isExpanded && (
-          <div className="mt-3 space-y-2 pl-8 border-l border-gray-300 dark:border-gray-600">
+          <div className="mt-4 space-y-3 pl-10 border-l-2 border-accent/30">
             {subCategories.length === 0 && (
-              <p className={darkMode ? "text-gray-400" : "text-gray-600"}>
-                No sub-categories
-              </p>
+              <div className="flex items-center justify-center py-4">
+                <p className="text-muted-foreground italic text-center">
+                  ✨ No sub-categories yet. Add your first one!
+                </p>
+              </div>
             )}
             {subCategories.map((sub) => (
               <div
                 key={sub.id}
-                className={`flex items-center justify-between p-2 rounded ${
-                  darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-                }`}
+                className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-secondary/10 to-accent/10 hover:from-secondary/20 hover:to-accent/20 transition-all duration-200 border border-border/50"
               >
-                <span className={darkMode ? "text-white" : "text-gray-900"}>
+                <span className="font-medium text-card-foreground">
                   {sub.name}
                 </span>
                 <div className="flex space-x-2">
                   <button
                     onClick={() => openEditSubCategoryForm(sub)}
-                    className={`p-1 rounded ${
-                      darkMode
-                        ? "text-blue-400 hover:bg-gray-700"
-                        : "text-blue-600 hover:bg-gray-100"
-                    }`}
+                    className="p-2 rounded-full bg-primary/10 hover:bg-primary/20 transition-all duration-200 hover:scale-110 group"
                   >
-                    <Edit2 className="h-4 w-4" />
+                    <Edit2 className="h-4 w-4 text-primary group-hover:text-primary-foreground transition-colors" />
                   </button>
                   <button
                     onClick={() => handleDeleteSubCategory(sub.id)}
-                    className={`p-1 rounded ${
-                      darkMode
-                        ? "text-red-400 hover:bg-gray-700"
-                        : "text-red-600 hover:bg-gray-100"
-                    }`}
+                    className="p-2 rounded-full bg-destructive/10 hover:bg-destructive/20 transition-all duration-200 hover:scale-110 group"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4 text-destructive group-hover:text-destructive-foreground transition-colors" />
                   </button>
                 </div>
               </div>
@@ -130,14 +104,14 @@ export const CategoryItem: React.FC<CategoryItemProps> = ({
 
             <button
               onClick={() => openAddSubCategoryForm(category.id)}
-              className={`flex items-center space-x-2 px-3 py-1 rounded mt-2 text-sm font-medium ${
-                darkMode
-                  ? "text-blue-400 hover:bg-gray-700"
-                  : "text-blue-600 hover:bg-gray-100"
-              }`}
+              className="flex items-center space-x-2 px-4 py-3 rounded-xl bg-gradient-to-r from-primary/10 to-accent/10 hover:from-primary/20 hover:to-accent/20 transition-all duration-200 border border-primary/20 hover:border-primary/30 group w-full"
             >
-              <Plus className="h-4 w-4" />
-              <span>Add Sub-category</span>
+              <div className="p-1 rounded-full bg-primary group-hover:bg-primary-foreground transition-colors">
+                <Plus className="h-5 w-5 text-primary-foreground group-hover:text-primary transition-colors" />
+              </div>
+              <span className="font-semibold text-primary group-hover:text-accent transition-colors">
+                Add Sub-category
+              </span>
             </button>
           </div>
         )}
