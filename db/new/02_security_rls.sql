@@ -358,6 +358,136 @@ TO public
 USING (false);
 
 -- ========================
+-- Lending Repayments
+-- ========================
+
+ALTER TABLE lending_repayments ENABLE ROW LEVEL SECURITY;
+
+-- SELECT: Users can only view repayments linked to their lending transactions
+DROP POLICY IF EXISTS "Users can view own lending repayments" ON lending_repayments;
+CREATE POLICY "Users can view own lending repayments"
+ON lending_repayments
+FOR SELECT
+USING (
+    EXISTS (
+        SELECT 1 FROM lending_details ld
+        WHERE ld.transaction_id = lending_repayments.lending_id
+          AND ld.created_by = auth.uid()
+    )
+);
+
+-- INSERT: Users can only add repayments to their own lending transactions
+DROP POLICY IF EXISTS "Users can insert own lending repayments" ON lending_repayments;
+CREATE POLICY "Users can insert own lending repayments"
+ON lending_repayments
+FOR INSERT
+WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM lending_details ld
+        WHERE ld.transaction_id = lending_repayments.lending_id
+          AND ld.created_by = auth.uid()
+    )
+);
+
+-- UPDATE: Users can only update repayments linked to their own lending
+DROP POLICY IF EXISTS "Users can update own lending repayments" ON lending_repayments;
+CREATE POLICY "Users can update own lending repayments"
+ON lending_repayments
+FOR UPDATE
+USING (
+    EXISTS (
+        SELECT 1 FROM lending_details ld
+        WHERE ld.transaction_id = lending_repayments.lending_id
+          AND ld.created_by = auth.uid()
+    )
+)
+WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM lending_details ld
+        WHERE ld.transaction_id = lending_repayments.lending_id
+          AND ld.created_by = auth.uid()
+    )
+);
+
+-- DELETE: Users can only delete repayments linked to their own lending
+DROP POLICY IF EXISTS "Users can delete own lending repayments" ON lending_repayments;
+CREATE POLICY "Users can delete own lending repayments"
+ON lending_repayments
+FOR DELETE
+USING (
+    EXISTS (
+        SELECT 1 FROM lending_details ld
+        WHERE ld.transaction_id = lending_repayments.lending_id
+          AND ld.created_by = auth.uid()
+    )
+);
+
+-- ========================
+-- Borrowing Repayments
+-- ========================
+
+ALTER TABLE borrowing_repayments ENABLE ROW LEVEL SECURITY;
+
+-- SELECT: Users can only view repayments linked to their borrowing transactions
+DROP POLICY IF EXISTS "Users can view own borrowing repayments" ON borrowing_repayments;
+CREATE POLICY "Users can view own borrowing repayments"
+ON borrowing_repayments
+FOR SELECT
+USING (
+    EXISTS (
+        SELECT 1 FROM borrowing_details bd
+        WHERE bd.transaction_id = borrowing_repayments.borrowing_id
+          AND bd.created_by = auth.uid()
+    )
+);
+
+-- INSERT: Users can only add repayments to their own borrowing transactions
+DROP POLICY IF EXISTS "Users can insert own borrowing repayments" ON borrowing_repayments;
+CREATE POLICY "Users can insert own borrowing repayments"
+ON borrowing_repayments
+FOR INSERT
+WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM borrowing_details bd
+        WHERE bd.transaction_id = borrowing_repayments.borrowing_id
+          AND bd.created_by = auth.uid()
+    )
+);
+
+-- UPDATE: Users can only update repayments linked to their own borrowing
+DROP POLICY IF EXISTS "Users can update own borrowing repayments" ON borrowing_repayments;
+CREATE POLICY "Users can update own borrowing repayments"
+ON borrowing_repayments
+FOR UPDATE
+USING (
+    EXISTS (
+        SELECT 1 FROM borrowing_details bd
+        WHERE bd.transaction_id = borrowing_repayments.borrowing_id
+          AND bd.created_by = auth.uid()
+    )
+)
+WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM borrowing_details bd
+        WHERE bd.transaction_id = borrowing_repayments.borrowing_id
+          AND bd.created_by = auth.uid()
+    )
+);
+
+-- DELETE: Users can only delete repayments linked to their own borrowing
+DROP POLICY IF EXISTS "Users can delete own borrowing repayments" ON borrowing_repayments;
+CREATE POLICY "Users can delete own borrowing repayments"
+ON borrowing_repayments
+FOR DELETE
+USING (
+    EXISTS (
+        SELECT 1 FROM borrowing_details bd
+        WHERE bd.transaction_id = borrowing_repayments.borrowing_id
+          AND bd.created_by = auth.uid()
+    )
+);
+
+-- ========================
 -- Security Definer Functions
 -- ========================
 

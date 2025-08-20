@@ -144,3 +144,33 @@ CREATE TABLE IF NOT EXISTS user_profiles (
     user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     defaults_inserted boolean NOT NULL DEFAULT false
 );
+
+-- ========================
+-- 6. Lending and Borrowing Repayments
+-- ========================
+
+CREATE TABLE IF NOT EXISTS lending_repayments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    lending_id UUID NOT NULL REFERENCES lending_details(transaction_id) ON DELETE CASCADE,
+    amount_paid DECIMAL(12,2) NOT NULL CHECK (amount_paid >= 0),
+    paid_on DATE NOT NULL,
+    created_by UUID NOT NULL DEFAULT auth.uid()
+);
+
+CREATE TABLE IF NOT EXISTS borrowing_repayments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    borrowing_id UUID NOT NULL REFERENCES borrowing_details(transaction_id) ON DELETE CASCADE,
+    amount_paid DECIMAL(12,2) NOT NULL CHECK (amount_paid >= 0),
+    paid_on DATE NOT NULL,
+    created_by UUID NOT NULL DEFAULT auth.uid()
+);
+
+-- ========================
+-- 7. Indexes for faster lookups
+-- ========================
+
+CREATE INDEX IF NOT EXISTS idx_transactions_created_by ON transactions(created_by);
+CREATE INDEX IF NOT EXISTS idx_lending_details_created_by ON lending_details(created_by);
+CREATE INDEX IF NOT EXISTS idx_borrowing_details_created_by ON borrowing_details(created_by);
+CREATE INDEX IF NOT EXISTS idx_lending_repayments_lending_id ON lending_repayments(lending_id);
+CREATE INDEX IF NOT EXISTS idx_borrowing_repayments_borrowing_id ON borrowing_repayments(borrowing_id);
