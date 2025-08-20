@@ -35,7 +35,7 @@ export const HomePage = () => {
         <SummaryCard
           icon={<TrendingUp className="h-6 w-6 text-primary" />}
           label="Total Balance"
-          value={`$${totalBalance.toFixed(2)}`}
+          value={totalBalance}
         />
         <SummaryCard
           icon={<PieChart className="h-6 w-6 text-accent" />}
