@@ -17,41 +17,45 @@ export const Header = () => {
     }
   };
 
+  const navigateHome = () => {
+    window.location.assign("/");
+  };
+
   return (
-    <header className="fixed top-0 left-0 right-0 p-4 flex justify-between items-center border-b-2 border-border/50 bg-background/95 backdrop-blur-sm text-foreground z-50">
+    <header className="fixed top-0 left-0 right-0 p-3 md:p-4 flex justify-between items-center border-b-2 border-border/50 bg-background/95 backdrop-blur-sm text-foreground z-50">
       {/* Logo and App Name */}
       <div
         tabIndex={0}
         role="button"
-        onClick={() => window.location.assign("/")}
+        onClick={navigateHome}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
-            window.location.assign("/");
+            navigateHome();
           }
         }}
-        className="flex items-center cursor-pointer select-none space-x-3 group"
+        className="flex items-center cursor-pointer select-none space-x-2 md:space-x-3 group"
         aria-label="Go to home page"
       >
         <div className="relative">
           <img
             src="/MM_Logo.svg"
             alt="Money Master Pro logo"
-            className="h-10 w-auto transition-transform group-hover:scale-110"
+            className="h-8 w-auto md:h-10 transition-transform group-hover:scale-110"
             draggable={false}
           />
           <div className="absolute inset-0 bg-primary/10 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
         </div>
-        <span className="text-2xl font-bold text-foreground bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+        <span className="text-lg md:text-2xl font-bold text-foreground bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
           Money Master Pro
         </span>
       </div>
 
       {/* Navigation Buttons */}
-      <nav className="flex gap-3 items-center">
+      <nav className="flex gap-2 md:gap-3 items-center">
         {/* Theme Toggle Button */}
         <button
           onClick={() => dispatch(toggleDarkMode())}
-          className="p-3 rounded-xl bg-card border-2 border-border/50 hover:border-accent/50 
+          className="p-2 md:p-3 rounded-xl bg-card border-2 border-border/50 hover:border-accent/50 
                    transition-all duration-200 hover:scale-110 group relative overflow-hidden"
           aria-pressed={darkMode}
           aria-label={darkMode ? "Switch to pastel mode" : "Switch to dark mode"}
@@ -59,34 +63,34 @@ export const Header = () => {
         >
           <div className="absolute inset-0 bg-accent/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
           {darkMode ? (
-            <Sun className="w-5 h-5 text-accent group-hover:text-accent-foreground transition-colors" />
+            <Sun className="w-4 h-4 md:w-5 md:h-5 text-accent group-hover:text-accent-foreground transition-colors" />
           ) : (
-            <Moon className="w-5 h-5 text-muted-foreground group-hover:text-accent transition-colors" />
+            <Moon className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground group-hover:text-accent transition-colors" />
           )}
         </button>
 
         {/* Home Button */}
         <button
-          onClick={() => window.location.assign("/")}
-          className="p-3 rounded-xl bg-card border-2 border-border/50 hover:border-primary/50 
+          onClick={navigateHome}
+          className="p-2 md:p-3 rounded-xl bg-card border-2 border-border/50 hover:border-primary/50 
                    transition-all duration-200 hover:scale-110 group relative overflow-hidden"
           aria-label="Go to home"
           title="Go to home"
         >
           <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-          <Home className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+          <Home className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground group-hover:text-primary transition-colors" />
         </button>
 
         {/* Sign Out Button */}
         <button
           onClick={handleSignOut}
-          className="p-3 rounded-xl bg-card border-2 border-border/50 hover:border-destructive/50 
+          className="p-2 md:p-3 rounded-xl bg-card border-2 border-border/50 hover:border-destructive/50 
                    transition-all duration-200 hover:scale-110 group relative overflow-hidden"
           aria-label="Sign out"
           title="Sign out"
         >
           <div className="absolute inset-0 bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-          <Power className="w-5 h-5 text-destructive group-hover:text-destructive-foreground transition-colors" />
+          <Power className="w-4 h-4 md:w-5 md:h-5 text-destructive group-hover:text-destructive-foreground transition-colors" />
         </button>
       </nav>
     </header>

@@ -48,12 +48,12 @@ export const RestoreDefaultsButton = () => {
       <button
         onClick={handleRestore}
         disabled={loading}
-        className="group flex items-center gap-2 px-6 py-3 rounded-xl font-semibold 
-                 shadow-pastel hover:shadow-lg transform hover:scale-105 
-                 transition-all duration-200 disabled:opacity-50 
-                 disabled:transform-none disabled:hover:shadow-pastel
-                 relative overflow-hidden bg-restore text-restore-foreground
-                 border-2 border-restore/50 hover:border-restore/70"
+        className="group flex items-center justify-center md:justify-start p-3 md:px-6 md:py-3 rounded-xl font-semibold 
+           shadow-pastel hover:shadow-lg transform hover:scale-105 
+           transition-all duration-200 disabled:opacity-50 
+           disabled:transform-none disabled:hover:shadow-pastel
+           relative overflow-hidden bg-restore text-restore-foreground
+           border-2 border-restore/50 hover:border-restore/70"
       >
         {/* Content */}
         <span className="flex items-center gap-2">

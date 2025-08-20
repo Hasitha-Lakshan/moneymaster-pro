@@ -290,12 +290,12 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
                 {editId ? (
                   <>
                     <RefreshCw className="h-5 w-5 text-primary-foreground group-hover:scale-110 transition-transform" />
-                    <span>Update Transaction</span>
+                    <span>Update</span>
                   </>
                 ) : (
                   <>
                     <Plus className="h-5 w-5 text-primary-foreground group-hover:scale-110 transition-transform" />
-                    <span>Add Transaction</span>
+                    <span>Add</span>
                   </>
                 )}
               </span>

@@ -81,7 +81,7 @@ export const CategoriesPage = () => {
           {/* Add Category Button */}
           <button
             onClick={openAddCategoryForm}
-            className="group flex items-center gap-2 px-6 py-3 rounded-xl font-semibold bg-primary text-primary-foreground shadow-pastel hover:shadow-lg transform hover:scale-105 transition-all duration-200 relative overflow-hidden"
+            className="group flex items-center justify-center md:justify-start p-3 md:px-6 md:py-3 rounded-xl font-semibold bg-primary text-primary-foreground shadow-pastel hover:shadow-lg transform hover:scale-105 transition-all duration-200 relative overflow-hidden"
           >
             {/* Gradient background */}
             <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent opacity-100 group-hover:opacity-90 transition-opacity" />

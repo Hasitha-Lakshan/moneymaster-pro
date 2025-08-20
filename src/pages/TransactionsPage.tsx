@@ -85,10 +85,10 @@ export const TransactionsPage = () => {
         </h1>
         <button
           onClick={handleAddClick}
-          className="btn-primary px-6 py-3 rounded-xl font-semibold flex items-center space-x-2 transition-all duration-300 hover:scale-105 hover:shadow-lg group"
+          className="btn-primary p-3 md:px-6 md:py-3 rounded-xl font-semibold flex items-center justify-center md:justify-start transition-all duration-300 hover:scale-105 hover:shadow-lg group"
         >
           <Plus className="h-5 w-5 transition-transform group-hover:rotate-90 group-hover:scale-110" />
-          <span>Add Transaction</span>
+          <span className="hidden md:inline md:ml-2">Add Transaction</span>
         </button>
       </div>
 
