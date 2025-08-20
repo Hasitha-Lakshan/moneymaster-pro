@@ -1,6 +1,6 @@
 import React from "react";
 import type { SourceFormData } from "../../types/sources";
-import { Plus, RefreshCw, XCircle } from "react-feather";
+import { Plus, RefreshCw, XCircle, X } from "react-feather";
 
 interface SourceFormModalProps {
   visible: boolean;
@@ -47,13 +47,26 @@ export const SourceFormModal: React.FC<SourceFormModalProps> = ({
           darkMode ? "bg-gray-800/95" : "bg-white/95"
         } rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto backdrop-blur-sm`}
       >
-        <h3
-          className={`text-lg font-semibold mb-4 ${
-            darkMode ? "text-white" : "text-gray-900"
-          }`}
-        >
-          {formData.id ? "Edit Source" : "Add Source"}
-        </h3>
+        {/* Header with Title + Close Button */}
+        <div className="flex justify-between items-center mb-4">
+          <h3
+            className={`text-lg font-semibold ${
+              darkMode ? "text-white" : "text-gray-900"
+            }`}
+          >
+            {formData.id ? "Edit Source" : "Add Source"}
+          </h3>
+          <button
+            onClick={onCancel}
+            className={`p-1 rounded ${
+              darkMode
+                ? "text-gray-400 hover:text-white"
+                : "text-gray-600 hover:text-black"
+            }`}
+          >
+            <X />
+          </button>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -156,11 +169,11 @@ export const SourceFormModal: React.FC<SourceFormModalProps> = ({
                     ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
                     : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
                 }`}
-                disabled={!!formData.id} // disable only when editing
+                disabled={!!formData.id}
               />
             </div>
 
-            {/* Credit Card Fields (only if selected) */}
+            {/* Credit Card Fields */}
             {formData.type === "Credit Card" && (
               <>
                 <div>
@@ -237,7 +250,7 @@ export const SourceFormModal: React.FC<SourceFormModalProps> = ({
             )}
           </div>
 
-          {/* Notes - always bottom, full width */}
+          {/* Notes */}
           <div>
             <label
               className={`block text-sm font-medium mb-1 ${

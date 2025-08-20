@@ -1,7 +1,7 @@
 import React from "react";
 import type { RootState } from "../../store/store";
 import { useSelector } from "react-redux";
-import { Plus, RefreshCw, XCircle } from "react-feather";
+import { Plus, RefreshCw, XCircle, X } from "react-feather";
 
 type FormInputElement =
   | HTMLInputElement
@@ -84,16 +84,25 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <div
         className={`${
-          darkMode ? "bg-gray-800" : "bg-white"
-        } rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto`}
+          darkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"
+        } rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-xl transition-all duration-200`}
       >
-        <h3
-          className={`text-lg font-semibold mb-4 ${
-            darkMode ? "text-white" : "text-gray-900"
-          }`}
-        >
-          {editId ? "Edit Transaction" : "Add Transaction"}
-        </h3>
+        {/* Header with Title + Close Button */}
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">
+            {editId ? "Edit Transaction" : "Add Transaction"}
+          </h3>
+          <button
+            onClick={onCancel}
+            className={`p-1 rounded ${
+              darkMode
+                ? "text-gray-400 hover:text-white"
+                : "text-gray-600 hover:text-black"
+            }`}
+          >
+            <X />
+          </button>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -149,7 +158,7 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
               </select>
             </div>
 
-            {/* Category & Subcategory (conditionally rendered) */}
+            {/* Category & Subcategory */}
             {!isTransfer && (
               <>
                 <div>
@@ -241,7 +250,7 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
               </select>
             </div>
 
-            {/* Destination (conditionally rendered) */}
+            {/* Destination */}
             {isTransfer && (
               <div>
                 <label
@@ -325,7 +334,6 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
 
           {/* Actions */}
           <div className="flex gap-3">
-            {/* Cancel Button */}
             <button
               type="button"
               onClick={onCancel}
@@ -340,7 +348,6 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
               <span>Cancel</span>
             </button>
 
-            {/* Submit Button */}
             <button
               type="submit"
               className={`flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-medium shadow-md transition-all duration-200

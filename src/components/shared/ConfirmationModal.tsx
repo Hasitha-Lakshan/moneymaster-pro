@@ -1,5 +1,5 @@
 import React from "react";
-import { CheckCircle, XCircle } from "react-feather";
+import { CheckCircle, XCircle, X } from "react-feather";
 
 type ConfirmationModalProps = {
   darkMode: boolean;
@@ -28,16 +28,30 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div
         className={`p-6 rounded-xl w-full max-w-md shadow-xl transition-all duration-200 ${
-          darkMode
-            ? "bg-gray-800 text-white"
-            : "bg-white text-gray-900"
+          darkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"
         }`}
       >
-        {/* Modal Title */}
-        <h3 className="text-lg font-semibold mb-4">{title}</h3>
+        {/* Header with Title + Close Button */}
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">{title}</h3>
+          <button
+            onClick={onCancel}
+            className={`p-1 rounded ${
+              darkMode
+                ? "text-gray-400 hover:text-white"
+                : "text-gray-600 hover:text-black"
+            }`}
+          >
+            <X />
+          </button>
+        </div>
 
         {/* Modal Message */}
-        <p className={`mb-6 ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
+        <p
+          className={`mb-6 ${
+            darkMode ? "text-gray-300" : "text-gray-600"
+          }`}
+        >
           {message}
         </p>
 
