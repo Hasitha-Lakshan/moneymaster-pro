@@ -1,4 +1,3 @@
-import React from "react";
 import { useDashboard } from "../hooks/useDashboard";
 import { DollarSign, TrendingUp, TrendingDown } from "react-feather";
 import { DashboardCard } from "../components/dashboard/DashboardCard";
@@ -17,7 +16,7 @@ type SourceBalance = {
   current_balance: number;
 };
 
-export const DashboardPage: React.FC<{ darkMode: boolean }> = () => {
+export const DashboardPage = () => {
   const {
     sourceBalances,
     lending,

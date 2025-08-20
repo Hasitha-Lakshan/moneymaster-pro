@@ -66,21 +66,18 @@ export const HomePage = () => {
           icon={<Plus className="h-8 w-8 text-primary" />}
           title="Add Transaction"
           description="Record new income or expense"
-          hoverColorClass="bg-primary/10 border-primary/50"
         />
         <QuickLink
           to="/categories"
           icon={<Settings className="h-8 w-8 text-accent" />}
           title="Manage Categories"
           description="Organize your finances"
-          hoverColorClass="bg-accent/10 border-accent/50"
         />
         <QuickLink
           to="/sources"
           icon={<CreditCard className="h-8 w-8 text-secondary" />}
           title="View Sources"
           description="Manage your accounts"
-          hoverColorClass="bg-secondary/10 border-secondary/50"
         />
       </div>
     </div>
